@@ -15,6 +15,9 @@
     'Content-Type': 'application/json'
   };
 
+  let latestJobs = [];
+  let activeJobTab = document.querySelector('.tab.active')?.dataset.tab || 'high';
+
   async function rest(path, options = {}) {
     const res = await fetch(`${base}/rest/v1/${path}`, {
       ...options,
@@ -26,7 +29,7 @@
   }
 
   function escapeHtml(v='') {
-    return String(v).replace(/[&<>'"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s]));
+    return String(v).replace(/[&<>'\"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[s]));
   }
 
   function safeJobUrl(value) {
@@ -38,12 +41,58 @@
     }
   }
 
-  function renderBackendJobs(rows) {
+  function isToday(value) {
+    if (!value) return false;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return false;
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  }
+
+  function updateTabCounts(rows) {
+    const valid = (rows || []).filter(j => safeJobUrl(j.url));
+    const high = valid.filter(j => Number(j.score || 0) >= 85).length;
+    const newToday = valid.filter(j => isToday(j.found_at || j.published_at)).length;
+    const labels = {
+      high: `High Match (${high || Math.min(valid.length, 20)})`,
+      all: `All Jobs (${valid.length})`,
+      new: `New Today (${newToday})`,
+      saved: 'Saved (0)'
+    };
+    document.querySelectorAll('.tab').forEach(tab => {
+      if (labels[tab.dataset.tab]) tab.textContent = labels[tab.dataset.tab];
+    });
+  }
+
+  function filteredJobs(rows, mode) {
+    const valid = (rows || []).filter(j => safeJobUrl(j.url));
+    if (mode === 'all') return valid;
+    if (mode === 'new') return valid.filter(j => isToday(j.found_at || j.published_at));
+    if (mode === 'saved') return [];
+    if (mode === 'high') {
+      const high = valid.filter(j => Number(j.score || 0) >= 85);
+      // Many newly scraped rows may not have a score yet. Keep the panel useful
+      // instead of turning it into a blank area while scoring catches up.
+      return high.length ? high : valid.slice(0, Math.min(20, valid.length));
+    }
+    return valid;
+  }
+
+  function emptyState(mode) {
+    const copy = mode === 'saved'
+      ? ['No saved jobs yet.', 'Open a job and save it to build your shortlist.']
+      : mode === 'new'
+        ? ['No new jobs found today yet.', 'Existing active opportunities are still available under All Jobs.']
+        : ['No working job links are available for this filter yet.', 'The search engine is refreshing verified sources.'];
+    return `<div class="jobs-empty-state" style="margin:8px 10px 14px;padding:24px;border:1px dashed #dcdfe3;border-radius:12px;background:#fbfbfc;color:#5b6068;font-size:12px;line-height:1.6"><b style="display:block;color:#14161a;margin-bottom:3px">${copy[0]}</b>${copy[1]}</div>`;
+  }
+
+  function renderBackendJobs(rows, mode = activeJobTab) {
     const list = document.getElementById('jobList');
     if (!list) return;
-    const validRows = (rows || []).filter(j => safeJobUrl(j.url));
+    const validRows = filteredJobs(rows, mode);
     if (!validRows.length) {
-      list.innerHTML = '<div style="padding:24px;color:#8a8f96;font-size:12px">No verified working job links are available yet. The search engine is refreshing sources.</div>';
+      list.innerHTML = emptyState(mode);
       return;
     }
     list.innerHTML = validRows.map(j => {
@@ -58,7 +107,7 @@
       const ini = escapeHtml((j.company || 'TC').split(/\s+/).map(x=>x[0]).join('').slice(0,3).toUpperCase());
       const time = j.published_at ? new Date(j.published_at).toLocaleString() : 'Recently';
       const url = safeJobUrl(j.url);
-      return `<div class="job-row backend-job" data-job-id="${escapeHtml(j.id)}" data-job-url="${escapeHtml(url)}" tabindex="0" role="link" aria-label="Open ${title} at ${company}">
+      return `<div class="job-row backend-job" data-job-id="${escapeHtml(j.id)}" data-job-url="${escapeHtml(url)}" data-score="${pct}" data-verified="${j.verified ? '1' : '0'}" tabindex="0" role="link" aria-label="Open ${title} at ${company}">
         <div class="job-logo" style="background:#2f6feb">${ini}</div>
         <div class="job-main">
           <div class="title">${title}</div>
@@ -69,7 +118,7 @@
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
           <span class="badge ${badgeClass}">${badgeLabel}</span><span class="job-time">${escapeHtml(time)}</span>
         </div>
-        <div class="job-actions"><a class="icon-btn" title="Open verified job" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">↗</a></div>
+        <div class="job-actions"><a class="icon-btn" title="Open job" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">↗</a></div>
       </div>`;
     }).join('');
 
@@ -80,11 +129,30 @@
     });
   }
 
+  function applyActiveTab(mode, clickedTab) {
+    activeJobTab = mode || 'all';
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === clickedTab || x.dataset.tab === activeJobTab));
+    renderBackendJobs(latestJobs, activeJobTab);
+  }
+
+  // ui.js was originally written for local demo rows and re-rendered that demo
+  // array whenever a tab was clicked. Intercept the tabs before that handler so
+  // the live Supabase jobs remain the source of truth and never disappear.
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      applyActiveTab(tab.dataset.tab || 'all', tab);
+    }, true);
+  });
+
   async function loadJobs() {
-    const rows = await rest('jobs?select=id,title,company,location,employment_type,category,score,verified,published_at,url&status=eq.active&url=not.is.null&order=score.desc.nullslast,published_at.desc.nullslast&limit=50');
-    renderBackendJobs(rows);
+    const rows = await rest('jobs?select=id,title,company,location,employment_type,category,score,verified,published_at,found_at,url&status=eq.active&url=not.is.null&order=score.desc.nullslast,published_at.desc.nullslast&limit=200');
+    latestJobs = (rows || []).filter(j => safeJobUrl(j.url));
+    updateTabCounts(latestJobs);
+    renderBackendJobs(latestJobs, activeJobTab);
     const stat = document.getElementById('statJobs');
-    if (stat) stat.textContent = (rows || []).filter(j => safeJobUrl(j.url)).length.toLocaleString();
+    if (stat) stat.textContent = latestJobs.length.toLocaleString();
   }
 
   async function loadActivity() {
