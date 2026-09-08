@@ -155,3 +155,15 @@ window.THECAREERS_CONFIG = {
   `;
   document.head.appendChild(style);
 })();
+
+// Load the utility panels without changing the original document structure.
+// CV Center and Settings are real controls, not placeholder scroll targets.
+(() => {
+  if (document.querySelector('script[data-tc-utility-panels]')) return;
+  const s = document.createElement('script');
+  s.dataset.tcUtilityPanels = '1';
+  s.src = new URL('./assets/utility-panels.js', document.currentScript?.src || location.href).href;
+  s.defer = true;
+  s.addEventListener('error', () => console.error('[TheCareers] utility panels failed to load'));
+  document.head.appendChild(s);
+})();
