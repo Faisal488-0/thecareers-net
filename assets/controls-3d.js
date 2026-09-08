@@ -59,7 +59,6 @@
         outline-offset:3px!important;
       }
 
-      /* Left navigation: white 3D buttons, selected item visibly pressed. */
       .nav{gap:8px!important;}
       .nav-item.tc-3d{
         border-radius:13px!important;
@@ -143,7 +142,6 @@
     document.head.appendChild(style);
   }
 
-  // Remove the placeholder person from the actual live DOM.
   document.querySelector('.profile')?.remove();
 
   const selector = [
@@ -202,6 +200,7 @@
     if (rows.length && (!originalOrder.length || originalOrder.some(x => !x.isConnected))) originalOrder = rows.slice();
 
     rows.forEach(row => {
+      row.dataset.tcDecorated = '1';
       const id = row.dataset.jobId || row.dataset.jobUrl || row.querySelector('.title')?.textContent || '';
       row.dataset.tcSaved = saved.has(id) ? '1' : '0';
       const actions = row.querySelector('.job-actions');
@@ -255,10 +254,11 @@
       const rank = new Map(originalOrder.map((r,i)=>[r,i]));
       sorted.sort((a,b)=>(rank.get(a)??999)-(rank.get(b)??999));
     }
-    sorted.forEach(row => jobList.appendChild(row));
+    const current = [...jobList.querySelectorAll('.backend-job')];
+    const needsReorder = sorted.some((row,i)=>current[i] !== row);
+    if (needsReorder) sorted.forEach(row => jobList.appendChild(row));
   }
 
-  // Fix a real bug: backend jobs must stay backend jobs when tabs are pressed.
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', e => {
       if (!jobList?.querySelector('.backend-job')) return;
@@ -271,7 +271,6 @@
     }, true);
   });
 
-  // Real sorting instead of label-only sorting.
   const sortCtl = document.querySelector('.select-like');
   if (sortCtl) {
     const modes = [['relevance','Relevance'],['company','Company'],['original','Newest']];
@@ -286,7 +285,6 @@
     }, true);
   }
 
-  // Real filter states: All -> Kuwait -> Verified -> High Match.
   const filterCtl = document.querySelector('.filter-btn');
   if (filterCtl) {
     const modes = [['all','Filters'],['kuwait','Filters: Kuwait'],['verified','Filters: Verified'],['high','Filters: High Match']];
@@ -304,7 +302,6 @@
     }, true);
   }
 
-  // Copilot card becomes a real shortcut to the search core.
   const copilot = document.querySelector('.copilot-card');
   if (copilot) {
     copilot.setAttribute('aria-label','Open AI Search Core');
@@ -316,8 +313,7 @@
     copilot.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();run();}});
   }
 
-  // Workflow steps now give visible/keyboard feedback rather than being decorative dead controls.
-  document.querySelectorAll('.wf-step').forEach((step,i) => {
+  document.querySelectorAll('.wf-step').forEach(step => {
     step.setAttribute('aria-pressed','false');
     const run = () => {
       document.querySelectorAll('.wf-step').forEach(x=>{x.classList.remove('tc-current-step');x.setAttribute('aria-pressed','false');});
@@ -328,7 +324,21 @@
     step.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();run();}});
   });
 
-  const observer = new MutationObserver(() => { decorateBackendRows(); upgradeControls(); });
+  const observer = new MutationObserver(mutations => {
+    let needsDecorate = false;
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        if (node.matches?.('.backend-job:not([data-tc-decorated="1"])') || node.querySelector?.('.backend-job:not([data-tc-decorated="1"])')) {
+          needsDecorate = true;
+          break;
+        }
+      }
+      if (needsDecorate) break;
+    }
+    upgradeControls();
+    if (needsDecorate) decorateBackendRows();
+  });
   if (jobList) observer.observe(jobList,{childList:true,subtree:true});
   decorateBackendRows();
 
