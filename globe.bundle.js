@@ -68,60 +68,35 @@ async function initGlobe() {
 
     chart.setAll({ rotationX: -48, rotationY: -18, zoomLevel: 1.04 });
 
-    // Ocean sphere — approved silver/blue look.
     const backgroundSeries = chart.series.push(am5map.MapPolygonSeries.new(root, {}));
     backgroundSeries.mapPolygons.template.setAll({
-      fill: am5.color(0x162b43),
-      fillOpacity: 1,
-      stroke: am5.color(0x8fb0cf),
-      strokeOpacity: 0.12,
-      strokeWidth: 1
+      fill: am5.color(0x162b43), fillOpacity: 1, stroke: am5.color(0x8fb0cf), strokeOpacity: 0.12, strokeWidth: 1
     });
     backgroundSeries.data.push({ geometry: am5map.getGeoRectangle(90, 180, -90, -180) });
 
-    const polygonSeries = chart.series.push(am5map.MapPolygonSeries.new(root, {
-      geoJSON: am5geodata_worldLow
-    }));
+    const polygonSeries = chart.series.push(am5map.MapPolygonSeries.new(root, { geoJSON: am5geodata_worldLow }));
     polygonSeries.mapPolygons.template.setAll({
-      tooltipText: '{name}',
-      fill: am5.color(0xb9cadc),
-      fillOpacity: 0.90,
-      stroke: am5.color(0xeaf2fa),
-      strokeOpacity: 0.58,
-      strokeWidth: 0.55,
-      interactive: true
+      tooltipText: '{name}', fill: am5.color(0xb9cadc), fillOpacity: 0.90,
+      stroke: am5.color(0xeaf2fa), strokeOpacity: 0.58, strokeWidth: 0.55, interactive: true
     });
-    polygonSeries.mapPolygons.template.states.create('hover', {
-      fill: am5.color(0xd9e7f5),
-      fillOpacity: 1
-    });
+    polygonSeries.mapPolygons.template.states.create('hover', { fill: am5.color(0xd9e7f5), fillOpacity: 1 });
 
     const graticuleSeries = chart.series.push(am5map.GraticuleSeries.new(root, {}));
-    graticuleSeries.mapLines.template.setAll({
-      stroke: am5.color(0xb7c9dc),
-      strokeOpacity: 0.13,
-      strokeWidth: 0.7
-    });
+    graticuleSeries.mapLines.template.setAll({ stroke: am5.color(0xb7c9dc), strokeOpacity: 0.13, strokeWidth: 0.7 });
 
     const citySeries = chart.series.push(am5map.MapPointSeries.new(root, {}));
     citySeries.bullets.push((rootArg, series, dataItem) => {
       const container = am5.Container.new(root, {});
       const isKuwait = dataItem?.dataContext?.name === 'Kuwait — Search Core';
       const pulse = container.children.push(am5.Circle.new(root, {
-        radius: 5,
-        fillOpacity: 0,
-        stroke: am5.color(isKuwait ? 0x42dd92 : 0x75b7ff),
-        strokeWidth: isKuwait ? 1.7 : 1.2,
-        strokeOpacity: isKuwait ? 0.62 : 0.46
+        radius: 5, fillOpacity: 0, stroke: am5.color(isKuwait ? 0x42dd92 : 0x75b7ff),
+        strokeWidth: isKuwait ? 1.7 : 1.2, strokeOpacity: isKuwait ? 0.62 : 0.46
       }));
       pulse.animate({ key: 'radius', from: 4, to: isKuwait ? 19 : 13, duration: isKuwait ? 1700 : 1500, loops: Infinity, easing: am5.ease.out(am5.ease.cubic) });
       pulse.animate({ key: 'strokeOpacity', from: isKuwait ? 0.62 : 0.48, to: 0, duration: isKuwait ? 1700 : 1500, loops: Infinity });
       container.children.push(am5.Circle.new(root, {
-        radius: isKuwait ? 4.6 : 3.2,
-        fill: am5.color(isKuwait ? 0x42dd92 : 0xffffff),
-        stroke: am5.color(isKuwait ? 0xffffff : 0x65adff),
-        strokeWidth: 1.3,
-        tooltipText: '{name}'
+        radius: isKuwait ? 4.6 : 3.2, fill: am5.color(isKuwait ? 0x42dd92 : 0xffffff),
+        stroke: am5.color(isKuwait ? 0xffffff : 0x65adff), strokeWidth: 1.3, tooltipText: '{name}'
       }));
       return am5.Bullet.new(root, { sprite: container });
     });
@@ -141,10 +116,8 @@ async function initGlobe() {
 
     const glowLines = chart.series.push(am5map.MapLineSeries.new(root, { lineType: 'curved' }));
     glowLines.mapLines.template.setAll({ stroke: am5.color(0x5f9fe8), strokeWidth: 7, strokeOpacity: 0.055 });
-
     const lineSeries = chart.series.push(am5map.MapLineSeries.new(root, { lineType: 'curved' }));
     lineSeries.mapLines.template.setAll({ stroke: am5.color(0x82b9f3), strokeWidth: 1.45, strokeOpacity: 0.50 });
-
     const coreLines = chart.series.push(am5map.MapLineSeries.new(root, { lineType: 'curved' }));
     coreLines.mapLines.template.setAll({ stroke: am5.color(0xcbe4ff), strokeWidth: 0.55, strokeOpacity: 0.68 });
 
@@ -153,13 +126,8 @@ async function initGlobe() {
       const container = am5.Container.new(root, {});
       container.children.push(am5.Circle.new(root, { radius: 7, fill: am5.color(0x75b7ff), fillOpacity: 0.10, strokeOpacity: 0 }));
       container.children.push(am5.Circle.new(root, {
-        radius: 2.4,
-        fill: am5.color(0xffffff),
-        stroke: am5.color(0x65adff),
-        strokeWidth: 1.5,
-        shadowColor: am5.color(0x4d9cf2),
-        shadowBlur: 8,
-        shadowOpacity: 0.65
+        radius: 2.4, fill: am5.color(0xffffff), stroke: am5.color(0x65adff), strokeWidth: 1.5,
+        shadowColor: am5.color(0x4d9cf2), shadowBlur: 8, shadowOpacity: 0.65
       }));
       return am5.Bullet.new(root, { sprite: container });
     });
@@ -206,3 +174,6 @@ async function initGlobe() {
 }
 
 initGlobe();
+
+// Load the independent Three.js black-hole core used by GLOBAL SEARCH NETWORK.
+import('./assets/blackhole-three.js').catch(err => console.error('[TheCareers] black-hole module load failed:', err));
