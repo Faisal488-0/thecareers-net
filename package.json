@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "scrape": "node backend/scrape.mjs",
-    "scrape:dry": "DRY_RUN=1 node backend/scrape.mjs"
+    "scrape": "node backend/scrape-oidc.mjs",
+    "scrape:legacy": "node backend/scrape.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2",
