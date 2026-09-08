@@ -11,26 +11,71 @@ import { scoreJob } from './skills/relevance-scorer.mjs';
 import { discoverFromSitemap } from './skills/sitemap-discovery.mjs';
 
 const BRIDGE_URL = process.env.SUPABASE_GITHUB_BRIDGE_URL || 'https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge';
-const OIDC_TOKEN = process.env.GITHUB_OIDC_TOKEN;
+let oidcToken = process.env.GITHUB_OIDC_TOKEN || '';
+let oidcObtainedAt = 0;
 const DRY_RUN = process.env.DRY_RUN === '1';
 const USER_AGENT = 'TheCareersBot/1.0 (+https://thecareers.net)';
+const OIDC_AUDIENCE = 'thecareers-supabase';
+const OIDC_REFRESH_MS = 3 * 60_000;
 
-if (!OIDC_TOKEN) throw new Error('Missing GITHUB_OIDC_TOKEN');
+async function refreshOidcToken() {
+  const requestUrl = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+  const requestToken = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+  if (!requestUrl || !requestToken) {
+    if (oidcToken) return oidcToken;
+    throw new Error('GitHub OIDC refresh environment is unavailable');
+  }
 
-async function bridge(action, payload = {}) {
-  const res = await fetch(BRIDGE_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${OIDC_TOKEN}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ action, ...payload })
+  const separator = requestUrl.includes('?') ? '&' : '?';
+  const res = await fetch(`${requestUrl}${separator}audience=${encodeURIComponent(OIDC_AUDIENCE)}`, {
+    headers: { Authorization: `Bearer ${requestToken}` }
   });
   const text = await res.text();
   let data;
-  try { data = text ? JSON.parse(text) : {}; } catch { data = { error: text }; }
-  if (!res.ok || data?.error) throw new Error(data?.error || `${res.status} ${text.slice(0, 500)}`);
-  return data;
+  try { data = text ? JSON.parse(text) : {}; } catch { data = {}; }
+  if (!res.ok || !data?.value) {
+    throw new Error(`Unable to refresh GitHub OIDC token (${res.status})`);
+  }
+
+  oidcToken = data.value;
+  oidcObtainedAt = Date.now();
+  log.info('GitHub OIDC token refreshed');
+  return oidcToken;
+}
+
+async function ensureFreshOidc() {
+  const canRefresh = Boolean(process.env.ACTIONS_ID_TOKEN_REQUEST_URL && process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN);
+  if (!oidcToken) return refreshOidcToken();
+  if (canRefresh && (!oidcObtainedAt || Date.now() - oidcObtainedAt >= OIDC_REFRESH_MS)) {
+    return refreshOidcToken();
+  }
+  return oidcToken;
+}
+
+async function bridge(action, payload = {}) {
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const token = attempt === 0 ? await ensureFreshOidc() : await refreshOidcToken();
+    const res = await fetch(BRIDGE_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ action, ...payload })
+    });
+    const text = await res.text();
+    let data;
+    try { data = text ? JSON.parse(text) : {}; } catch { data = { error: text }; }
+    if (res.ok && !data?.error) return data;
+
+    const message = String(data?.error || `${res.status} ${text.slice(0, 500)}`);
+    lastError = new Error(message);
+    const authExpired = res.status === 401 || /\bexp\b|expired|jwt|oidc|token/i.test(message);
+    const canRefresh = Boolean(process.env.ACTIONS_ID_TOKEN_REQUEST_URL && process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN);
+    if (!(attempt === 0 && authExpired && canRefresh)) break;
+  }
+  throw lastError || new Error('GitHub bridge request failed');
 }
 
 function fingerprint(job) {
@@ -77,9 +122,14 @@ async function upsertJobs(jobs, sourceId, runId, source) {
     });
 
   if (!rows.length || DRY_RUN) return rows.length;
-  await bridge('upsert_jobs', { rows });
-  await emit(`Stored ${rows.length} normalized jobs`, 'ok', runId, { source_id: sourceId });
-  return rows.length;
+  const result = await bridge('upsert_jobs', { rows });
+  const stored = Number(result?.count ?? rows.length);
+  await emit(`Stored ${stored} normalized jobs`, 'ok', runId, {
+    source_id: sourceId,
+    submitted: rows.length,
+    skipped_invalid: Number(result?.skipped_invalid || 0)
+  });
+  return stored;
 }
 
 async function markSource(source, fields) {
@@ -87,6 +137,7 @@ async function markSource(source, fields) {
   await bridge('mark_source', { source_id: source.id, fields });
 }
 
+await ensureFreshOidc();
 const sourceReply = await bridge('list_sources');
 const sources = sourceReply.data || [];
 
@@ -243,7 +294,15 @@ for (const source of sources) {
     }
 
     const unique = [...new Map(
-      collected.filter(j => j.url && j.title).map(j => [fingerprint(normalizeJob(j)), j])
+      collected
+        .map(j => normalizeJob(j, {
+          company: source?.default_company,
+          location: source?.default_location,
+          category: source?.config?.default_category,
+          sourceName: source?.name
+        }))
+        .filter(j => j.url && j.title)
+        .map(j => [fingerprint(j), j])
     ).values()];
 
     found += await upsertJobs(unique, source.id, runId, source);
@@ -252,11 +311,15 @@ for (const source of sources) {
     errors++;
     const message = String(err?.message || err);
     const challenged = /captcha|anti-bot|challenge/i.test(message);
-    await emit(`Source failed: ${source.name} — ${message}`, 'warning', runId, { source_id: source.id, challenged });
-    await markSource(source, {
-      last_status: challenged ? 'challenge_blocked' : 'error',
-      last_error: message.slice(0, 500)
-    });
+    try {
+      await emit(`Source failed: ${source.name} — ${message}`, 'warning', runId, { source_id: source.id, challenged });
+      await markSource(source, {
+        last_status: challenged ? 'challenge_blocked' : 'error',
+        last_error: message.slice(0, 500)
+      });
+    } catch (bridgeErr) {
+      log.error(`Unable to record source failure for ${source.name}: ${String(bridgeErr?.message || bridgeErr)}`);
+    }
   }
 }
 
