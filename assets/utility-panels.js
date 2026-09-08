@@ -5,6 +5,19 @@
   if (window.__TC_UTILITY_PANELS__) return;
   window.__TC_UTILITY_PANELS__ = true;
 
+  // Do not present a fictional signed-in identity before authentication is live.
+  // This is intentionally replaced by the real authenticated profile later.
+  const normalizePrelaunchIdentity = () => {
+    const name = document.querySelector('.profile-name');
+    const role = document.querySelector('.profile-role');
+    const avatar = document.querySelector('.profile .avatar');
+    if (name) name.textContent = 'Guest';
+    if (role) role.textContent = 'Pre-launch access';
+    if (avatar) avatar.textContent = 'G';
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', normalizePrelaunchIdentity, { once:true });
+  else normalizePrelaunchIdentity();
+
   const style=document.createElement('style');
   style.textContent=`
     .tc-modal-backdrop{position:fixed;inset:0;background:rgba(18,22,28,.28);backdrop-filter:blur(3px);z-index:9998;display:flex;align-items:center;justify-content:center;padding:24px}
