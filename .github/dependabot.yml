@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:10"
+      timezone: "Asia/Kuwait"
+    open-pull-requests-limit: 5
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+    commit-message:
+      prefix: "deps"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:20"
+      timezone: "Asia/Kuwait"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
