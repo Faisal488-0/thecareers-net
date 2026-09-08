@@ -1,25 +1,38 @@
 name: TheCareers job scrape
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/scrape-oidc.mjs'
+      - 'package.json'
+      - '.github/workflows/scrape.yml'
   schedule:
     - cron: '17 */6 * * *'
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
+      - name: Get GitHub OIDC token
+        shell: bash
+        run: |
+          RESPONSE=$(curl -fsSL -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=thecareers-supabase")
+          TOKEN=$(printf '%s' "$RESPONSE" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).value))")
+          echo "::add-mask::$TOKEN"
+          echo "GITHUB_OIDC_TOKEN=$TOKEN" >> "$GITHUB_ENV"
       - run: npm install
       - run: npx playwright install --with-deps chromium
       - run: npm run scrape
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
