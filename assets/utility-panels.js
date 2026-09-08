@@ -29,11 +29,21 @@
   }
 
   function cvPanel(){
-    const m=open('CV Center',`<p>Your primary CV is kept on this device for quick access. It is not sent anywhere by this control.</p><div class="tc-cv-box"><input id="tcCvInput" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><div class="tc-cv-status" id="tcCvStatus">No CV selected.</div></div><div class="tc-modal-row"><button class="tc-modal-btn" id="tcCvRemove">Remove saved CV</button></div>`);
+    const m=open('CV Center',`<p>Pre-launch privacy mode: this control does not upload, transmit, or permanently store your CV. A private account-bound CV vault will be enabled only after authentication and storage policies are ready.</p><div class="tc-cv-box"><input id="tcCvInput" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><div class="tc-cv-status" id="tcCvStatus">No CV selected. Nothing is stored.</div></div><div class="tc-modal-row"><button class="tc-modal-btn" id="tcCvRemove">Clear selection</button></div>`);
     const status=m.querySelector('#tcCvStatus');
-    try{const meta=JSON.parse(localStorage.getItem('thecareers_cv_meta_v1')||'null');if(meta)status.textContent=`Saved locally: ${meta.name} (${Math.round(meta.size/1024)} KB)`;}catch{}
-    m.querySelector('#tcCvInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;const meta={name:f.name,size:f.size,type:f.type,lastModified:f.lastModified};localStorage.setItem('thecareers_cv_meta_v1',JSON.stringify(meta));status.textContent=`Saved locally: ${f.name} (${Math.round(f.size/1024)} KB)`;window.pushActivity?.(`CV selected: ${f.name}`);});
-    m.querySelector('#tcCvRemove').addEventListener('click',()=>{localStorage.removeItem('thecareers_cv_meta_v1');status.textContent='No CV selected.';window.pushActivity?.('Saved CV removed');});
+    const input=m.querySelector('#tcCvInput');
+    // Remove metadata left by older builds. We intentionally retain no CV filename
+    // or file metadata in localStorage before the private authenticated vault exists.
+    localStorage.removeItem('thecareers_cv_meta_v1');
+    input.addEventListener('change',e=>{
+      const f=e.target.files?.[0];
+      if(!f){status.textContent='No CV selected. Nothing is stored.';return;}
+      status.textContent=`Selected for this browser session only (${Math.round(f.size/1024)} KB). The file has not been uploaded.`;
+    });
+    m.querySelector('#tcCvRemove').addEventListener('click',()=>{
+      input.value='';
+      status.textContent='No CV selected. Nothing is stored.';
+    });
   }
 
   function settingsPanel(){
