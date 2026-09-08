@@ -5,31 +5,40 @@ window.THECAREERS_CONFIG = {
 };
 
 // Global Search Network layout safety layer.
-// Keeps all six source cards inside the panel and outside the black-hole core.
+// Runtime pixel positioning is intentional here: it overrides the original
+// inline left/right styles and keeps all six cards inside the panel at every
+// desktop width without entering the black-hole center.
 (() => {
   const style = document.createElement('style');
   style.id = 'thecareers-network-layout-hotfix';
   style.textContent = `
     .net-body {
-      min-height: 300px;
-      overflow: hidden;
+      min-height: 300px !important;
+      overflow: hidden !important;
       isolation: isolate;
-      position: relative;
+      position: relative !important;
     }
-
+    .net-body #netCanvas {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 1 !important;
+    }
+    .net-body .net-center { z-index: 3 !important; }
     .net-body .net-node {
-      width: 132px !important;
-      min-width: 132px !important;
-      max-width: 132px !important;
-      display: block !important;
-      visibility: visible !important;
-      opacity: 1 !important;
+      position: absolute !important;
+      min-width: 0 !important;
+      display: block;
+      visibility: visible;
+      opacity: 1;
       white-space: normal !important;
       overflow: hidden !important;
       text-overflow: ellipsis;
       z-index: 8 !important;
+      box-sizing: border-box !important;
+      transition: left .18s ease, top .18s ease, width .18s ease;
     }
-
     .net-body .net-node b,
     .net-body .net-node .live {
       max-width: 100%;
@@ -37,89 +46,84 @@ window.THECAREERS_CONFIG = {
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-
-    .net-body #netCanvas { z-index: 1 !important; }
-    .net-body .net-center { z-index: 3 !important; }
-
-    /* Explicit balanced placement. nth-of-type counts .net-center as the first div. */
-    .net-body > .net-node:nth-of-type(2) {
-      top: 12% !important;
-      left: 8% !important;
-      right: auto !important;
-      bottom: auto !important;
-      transform: none !important;
-    }
-    .net-body > .net-node:nth-of-type(3) {
-      top: 12% !important;
-      right: 8% !important;
-      left: auto !important;
-      bottom: auto !important;
-      transform: none !important;
-    }
-    .net-body > .net-node:nth-of-type(4) {
-      top: 50% !important;
-      left: 5% !important;
-      right: auto !important;
-      bottom: auto !important;
-      transform: translateY(-50%) !important;
-    }
-    .net-body > .net-node:nth-of-type(5) {
-      top: 50% !important;
-      right: 5% !important;
-      left: auto !important;
-      bottom: auto !important;
-      transform: translateY(-50%) !important;
-    }
-    .net-body > .net-node:nth-of-type(6) {
-      bottom: 8% !important;
-      left: 8% !important;
-      right: auto !important;
-      top: auto !important;
-      transform: none !important;
-    }
-    .net-body > .net-node:nth-of-type(7) {
-      bottom: 8% !important;
-      right: 8% !important;
-      left: auto !important;
-      top: auto !important;
-      transform: none !important;
-    }
-
-    @media (max-width: 1180px) {
-      .net-body { min-height: 320px; }
-      .net-body .net-node {
-        width: 118px !important;
-        min-width: 118px !important;
-        max-width: 118px !important;
-        padding: 7px 9px !important;
-      }
-      .net-body > .net-node:nth-of-type(2),
-      .net-body > .net-node:nth-of-type(6) { left: 6% !important; }
-      .net-body > .net-node:nth-of-type(3),
-      .net-body > .net-node:nth-of-type(7) { right: 6% !important; }
-      .net-body > .net-node:nth-of-type(4) { left: 3% !important; }
-      .net-body > .net-node:nth-of-type(5) { right: 3% !important; }
-    }
-
-    @media (max-width: 760px) {
-      .net-body { min-height: 310px; }
-      .net-body .net-node {
-        width: 104px !important;
-        min-width: 104px !important;
-        max-width: 104px !important;
-        font-size: 10px !important;
-      }
-      .net-body > .net-node:nth-of-type(2),
-      .net-body > .net-node:nth-of-type(6) { left: 3% !important; }
-      .net-body > .net-node:nth-of-type(3),
-      .net-body > .net-node:nth-of-type(7) { right: 3% !important; }
-      .net-body > .net-node:nth-of-type(4) { left: 1.5% !important; }
-      .net-body > .net-node:nth-of-type(5) { right: 1.5% !important; }
-    }
-
     @media (max-width: 520px) {
       .net-body .net-node { display: none !important; }
     }
   `;
   document.head.appendChild(style);
+
+  function layoutNetworkNodes() {
+    const body = document.querySelector('.net-body');
+    if (!body) return;
+    const nodes = Array.from(body.querySelectorAll(':scope > .net-node'));
+    if (nodes.length !== 6) return;
+
+    const w = body.clientWidth;
+    const h = body.clientHeight;
+    if (!w || !h) return;
+
+    if (w <= 520) {
+      nodes.forEach(n => n.style.setProperty('display', 'none', 'important'));
+      return;
+    }
+
+    const cardW = w < 760 ? 104 : (w < 1180 ? 118 : 132);
+    const side = w < 760 ? 14 : Math.max(22, Math.min(74, Math.round(w * 0.065)));
+    const topGap = 20;
+    const bottomGap = 22;
+
+    nodes.forEach(n => {
+      n.style.setProperty('display', 'block', 'important');
+      n.style.setProperty('width', `${cardW}px`, 'important');
+      n.style.setProperty('max-width', `${cardW}px`, 'important');
+      n.style.setProperty('min-width', `${cardW}px`, 'important');
+      n.style.setProperty('right', 'auto', 'important');
+      n.style.setProperty('bottom', 'auto', 'important');
+      n.style.setProperty('transform', 'none', 'important');
+    });
+
+    const leftX = side;
+    const rightX = Math.max(side, w - side - cardW);
+
+    const topY = topGap;
+    const midYLeft = Math.max(topGap + 56, Math.round((h - nodes[2].offsetHeight) / 2));
+    const midYRight = Math.max(topGap + 56, Math.round((h - nodes[3].offsetHeight) / 2));
+    const bottomYLeft = Math.max(midYLeft + 58, h - bottomGap - nodes[4].offsetHeight);
+    const bottomYRight = Math.max(midYRight + 58, h - bottomGap - nodes[5].offsetHeight);
+
+    const positions = [
+      [leftX, topY],
+      [rightX, topY],
+      [leftX, midYLeft],
+      [rightX, midYRight],
+      [leftX, bottomYLeft],
+      [rightX, bottomYRight]
+    ];
+
+    nodes.forEach((n, i) => {
+      n.style.setProperty('left', `${positions[i][0]}px`, 'important');
+      n.style.setProperty('top', `${positions[i][1]}px`, 'important');
+    });
+  }
+
+  const run = () => requestAnimationFrame(() => requestAnimationFrame(layoutNetworkNodes));
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run, { once: true });
+  } else {
+    run();
+  }
+  window.addEventListener('load', run, { once: true });
+  window.addEventListener('resize', run, { passive: true });
+
+  const attachObserver = () => {
+    const body = document.querySelector('.net-body');
+    if (!body || !('ResizeObserver' in window)) return;
+    const ro = new ResizeObserver(run);
+    ro.observe(body);
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachObserver, { once: true });
+  } else {
+    attachObserver();
+  }
 })();
