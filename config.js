@@ -167,3 +167,38 @@ window.THECAREERS_CONFIG = {
   s.addEventListener('error', () => console.error('[TheCareers] utility panels failed to load'));
   document.head.appendChild(s);
 })();
+
+// Pre-launch identity and legal navigation.
+// Do not present a fictional user or a registered-company identity before Auth
+// and the final legal operator details are configured.
+(() => {
+  const apply = () => {
+    const profileName = document.querySelector('.profile-name');
+    const profileRole = document.querySelector('.profile-role');
+    const avatar = document.querySelector('.profile .avatar');
+    if (profileName) profileName.textContent = 'Guest';
+    if (profileRole) profileRole.textContent = 'Pre-launch access';
+    if (avatar) avatar.textContent = 'TC';
+
+    const foot = document.querySelector('.sidebar-foot');
+    if (foot) {
+      foot.innerHTML = `
+        TheCareers v2.1.0<br>
+        © 2026 TheCareers<br>
+        <span style="display:inline-block;margin-top:6px">
+          <a href="./privacy.html">Privacy</a> ·
+          <a href="./terms.html">Terms</a> ·
+          <a href="./disclaimer.html">Disclaimer</a>
+        </span><br>
+        <a href="mailto:support@thecareers.net">support@thecareers.net</a>
+      `;
+      foot.querySelectorAll('a').forEach(a => {
+        a.style.color = 'inherit';
+        a.style.textDecoration = 'underline';
+        a.style.textUnderlineOffset = '2px';
+      });
+    }
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, { once: true });
+  else apply();
+})();
