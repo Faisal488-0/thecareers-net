@@ -1,0 +1,15 @@
+{
+  "name": "thecareers-search-engine",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "scrape": "node backend/scrape.mjs",
+    "scrape:dry": "DRY_RUN=1 node backend/scrape.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2",
+    "cheerio": "^1",
+    "crawlee": "^3",
+    "playwright": "^1"
+  }
+}
