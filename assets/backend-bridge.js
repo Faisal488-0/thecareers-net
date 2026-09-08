@@ -141,3 +141,15 @@
   refresh();
   setInterval(refresh, 30000);
 })();
+
+// Load the visual/interaction enhancement independently from the globe and black-hole engines.
+(() => {
+  if (document.querySelector('script[data-tc-controls-3d]')) return;
+  const s = document.createElement('script');
+  s.dataset.tcControls3d = '1';
+  const base = document.currentScript?.src || location.href;
+  s.src = new URL('./controls-3d.js', base).href;
+  s.defer = true;
+  s.addEventListener('error', () => console.error('[TheCareers] 3D controls failed to load'));
+  document.head.appendChild(s);
+})();
