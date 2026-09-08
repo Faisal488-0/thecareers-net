@@ -18,6 +18,8 @@ const GENERIC_TITLE_PATTERNS = [
   /^my\s+saved\s+jobs$/i,
   /^job\s+alerts?$/i,
   /^vacancies$/i,
+  /^(?:aag|tea)\s+vacancies$/i,
+  /^(?:uae|bahraini)\s+nationals$/i,
   /^view\s+.*(?:jobs|vacancies).*$/i,
   /^recruitment\s+fairs?$/i,
   /^recruitment\s+portal$/i,
