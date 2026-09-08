@@ -127,3 +127,31 @@ window.THECAREERS_CONFIG = {
     attachObserver();
   }
 })();
+
+// Job title is the primary decision field in Top Opportunities.
+// Make it visually dominant while keeping company/meta information secondary.
+(() => {
+  const style = document.createElement('style');
+  style.id = 'thecareers-job-title-priority';
+  style.textContent = `
+    .job-main .title {
+      font-size: 15.5px !important;
+      line-height: 1.28 !important;
+      font-weight: 800 !important;
+      letter-spacing: -0.01em !important;
+      color: #0b0c0e !important;
+      margin-bottom: 3px !important;
+    }
+    .job-main .company {
+      font-size: 11.5px !important;
+      color: #5b6068 !important;
+    }
+    .job-row {
+      min-height: 64px;
+    }
+    @media (max-width: 760px) {
+      .job-main .title { font-size: 14.5px !important; }
+    }
+  `;
+  document.head.appendChild(style);
+})();
