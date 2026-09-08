@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'backend/scrape-oidc.mjs'
+      - 'backend/skills/**'
       - 'package.json'
       - '.github/workflows/scrape.yml'
   schedule:
