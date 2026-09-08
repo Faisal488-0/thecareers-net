@@ -12,11 +12,12 @@ const GENERIC_TITLE_PATTERNS = [
   /^jobs?\s+at\b/i,
   /^job\s+opportunities$/i,
   /^aiu\s+job\s+opportunities$/i,
-  /^current\s+openings$/i,
-  /^search\s+jobs$/i,
+  /^current\s+(?:openings|vacancies)$/i,
+  /^search\s+jobs(?:\b.*)?$/i,
   /^advanced\s+search$/i,
   /^my\s+saved\s+jobs$/i,
   /^job\s+alerts?$/i,
+  /^job\s+application\s+process$/i,
   /^vacancies$/i,
   /^(?:aag|tea)\s+vacancies$/i,
   /^(?:uae|bahraini)\s+nationals$/i,
@@ -30,6 +31,12 @@ const GENERIC_TITLE_PATTERNS = [
   /^housing\s+for\s+overseas\s+faculty$/i,
   /^career\s+center$/i,
   /^contact\s+us$/i,
+  /^get\s+in\s+touch$/i,
+  /^quick\s+links$/i,
+  /^services$/i,
+  /^our\s+people$/i,
+  /^why\s+should\s+you\s+join\s+us\s*\??$/i,
+  /^training\s+programs$/i,
   /^faqs?$/i,
   /^listen$/i,
   /^share$/i,
@@ -44,46 +51,59 @@ const GENERIC_TITLE_PATTERNS = [
 ];
 
 export function sanitizeJobTitle(value) {
-  let title = clean(value)
-    .replace(/[↗→]+$/g, '')
-    .trim();
-
+  let title = clean(value).replace(/[↗→]+$/g, '').trim();
   if (!title || title.length < 3 || title.length > 180) return null;
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(title)) return null;
 
-  // Some pages expose headings such as “Apply for Senior Accountant”.
-  // Keep the real role while dropping the CTA prefix.
   const prefixed = title.match(/^apply\s+(?:now\s+)?(?:for|to)\s+(.+)$/i);
   if (prefixed?.[1]) title = clean(prefixed[1]);
 
   if (!title || GENERIC_TITLE_PATTERNS.some(re => re.test(title))) return null;
 
-  // Reject labels that are mostly navigation/action words rather than a role.
   const words = title.toLowerCase().split(/\s+/).filter(Boolean);
   const navWords = new Set(['apply','career','careers','job','jobs','vacancy','vacancies','search','openings','portal','recruitment']);
-  if (words.length <= 4 && words.filter(w => navWords.has(w)).length >= Math.ceil(words.length * 0.6)) return null;
-
+  if (words.length <= 5 && words.filter(w => navWords.has(w)).length >= Math.ceil(words.length * 0.6)) return null;
   return title;
 }
 
-export function normalizeJob(job, defaults = {}) {
-  let url = clean(job.url);
+function inferLocation(title, location) {
+  const t = clean(title).toLowerCase();
+  if (/\bkuwait\b/.test(t)) return 'Kuwait';
+  if (/\bqatar\b|\bdoha\b/.test(t)) return 'Qatar';
+  if (/\buae\b|\bdubai\b|\babu dhabi\b/.test(t)) return 'UAE';
+  if (/\bksa\b|\bsaudi\b/.test(t)) return 'Saudi Arabia';
+  if (/\bbahrain\b/.test(t)) return 'Bahrain';
+  if (/\begypt\b|\bcairo\b/.test(t)) return 'Egypt';
+  return clean(location) || 'Kuwait';
+}
+
+export function sanitizeJobUrl(value) {
+  let url = clean(value);
+  if (!url || /^(mailto:|tel:|javascript:)/i.test(url)) return null;
+  if (/(?:^|\/)null(?:$|[/?#])/i.test(url) || /(?:^|\/)undefined(?:$|[/?#])/i.test(url)) return null;
   try {
-    if (url) url = normalizeUrl(url, { removeQueryParameters: [/^utm_/, 'fbclid', 'gclid'], stripWWW: false });
-  } catch {}
+    url = normalizeUrl(url, { removeQueryParameters: [/^utm_/, 'fbclid', 'gclid'], stripWWW: false });
+  } catch { return null; }
+  try {
+    const u = new URL(url);
+    if (!['http:','https:'].includes(u.protocol)) return null;
+  } catch { return null; }
+  return url;
+}
 
-  // mailto/tel/javascript links are not job-detail URLs.
-  if (/^(mailto:|tel:|javascript:)/i.test(url)) url = '';
-
+export function normalizeJob(job, defaults = {}) {
+  const title = sanitizeJobTitle(job.title);
+  const url = sanitizeJobUrl(job.url);
+  const location = inferLocation(title, clean(job.location) || clean(defaults.location));
   return {
-    title: sanitizeJobTitle(job.title),
+    title,
     company: clean(job.company) || clean(defaults.company),
-    location: clean(job.location) || clean(defaults.location) || 'Kuwait',
+    location,
     employment_type: clean(job.employment_type) || null,
     category: clean(job.category) || clean(defaults.category) || null,
     description: clean(job.description) || null,
     published_at: job.published_at || null,
-    url: url || null,
+    url,
     source_name: clean(job.source_name) || clean(defaults.sourceName),
     score: Number(job.score || 0),
     verified: Boolean(job.verified)
