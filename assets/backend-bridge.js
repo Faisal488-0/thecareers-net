@@ -29,10 +29,24 @@
     return String(v).replace(/[&<>'"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s]));
   }
 
+  function safeJobUrl(value) {
+    try {
+      const u = new URL(String(value || ''));
+      return (u.protocol === 'https:' || u.protocol === 'http:') ? u.href : '';
+    } catch (_) {
+      return '';
+    }
+  }
+
   function renderBackendJobs(rows) {
     const list = document.getElementById('jobList');
-    if (!list || !rows?.length) return;
-    list.innerHTML = rows.map(j => {
+    if (!list) return;
+    const validRows = (rows || []).filter(j => safeJobUrl(j.url));
+    if (!validRows.length) {
+      list.innerHTML = '<div style="padding:24px;color:#8a8f96;font-size:12px">No verified working job links are available yet. The search engine is refreshing sources.</div>';
+      return;
+    }
+    list.innerHTML = validRows.map(j => {
       const pct = Math.max(0, Math.min(100, Number(j.score || 0)));
       const badgeClass = pct >= 90 ? 'high' : (j.verified ? 'verified' : 'new');
       const badgeLabel = pct >= 90 ? 'High Match' : (j.verified ? 'Verified' : 'New');
@@ -43,7 +57,8 @@
       const cat = escapeHtml(j.category || 'Other');
       const ini = escapeHtml((j.company || 'TC').split(/\s+/).map(x=>x[0]).join('').slice(0,3).toUpperCase());
       const time = j.published_at ? new Date(j.published_at).toLocaleString() : 'Recently';
-      return `<div class="job-row" data-job-id="${escapeHtml(j.id)}">
+      const url = safeJobUrl(j.url);
+      return `<div class="job-row backend-job" data-job-id="${escapeHtml(j.id)}" data-job-url="${escapeHtml(url)}" tabindex="0" role="link" aria-label="Open ${title} at ${company}">
         <div class="job-logo" style="background:#2f6feb">${ini}</div>
         <div class="job-main">
           <div class="title">${title}</div>
@@ -54,16 +69,22 @@
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
           <span class="badge ${badgeClass}">${badgeLabel}</span><span class="job-time">${escapeHtml(time)}</span>
         </div>
-        <div class="job-actions"><a class="icon-btn" title="Open" href="${escapeHtml(j.url || '#')}" target="_blank" rel="noopener">↗</a></div>
+        <div class="job-actions"><a class="icon-btn" title="Open verified job" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">↗</a></div>
       </div>`;
     }).join('');
+
+    list.querySelectorAll('.backend-job').forEach(row => {
+      const open = () => { const u = safeJobUrl(row.dataset.jobUrl); if (u) window.open(u, '_blank', 'noopener,noreferrer'); };
+      row.addEventListener('click', e => { if (!e.target.closest('a,button')) open(); });
+      row.addEventListener('keydown', e => { if (e.key === 'Enter') open(); });
+    });
   }
 
   async function loadJobs() {
-    const rows = await rest('jobs?select=id,title,company,location,employment_type,category,score,verified,published_at,url&status=eq.active&order=score.desc.nullslast,published_at.desc.nullslast&limit=25');
+    const rows = await rest('jobs?select=id,title,company,location,employment_type,category,score,verified,published_at,url&status=eq.active&url=not.is.null&order=score.desc.nullslast,published_at.desc.nullslast&limit=50');
     renderBackendJobs(rows);
     const stat = document.getElementById('statJobs');
-    if (stat) stat.textContent = rows.length.toLocaleString();
+    if (stat) stat.textContent = (rows || []).filter(j => safeJobUrl(j.url)).length.toLocaleString();
   }
 
   async function loadActivity() {
