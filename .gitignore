@@ -4,3 +4,11 @@ node_modules/
 !.env.example
 .DS_Store
 storage/
+.supabase/
+supabase/.temp/
+*.pem
+*.key
+*.p12
+*.pfx
+npm-debug.log*
+yarn-error.log*
