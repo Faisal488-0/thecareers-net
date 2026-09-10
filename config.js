@@ -16,6 +16,18 @@ window.THECAREERS_CONFIG = {
   document.head.appendChild(s);
 })();
 
+// Mobile navigation drawer. The original stylesheet hides .sidebar below 760px;
+// this isolated enhancement restores it as an accessible off-canvas menu.
+(() => {
+  if (document.querySelector('script[data-tc-mobile-nav]')) return;
+  const s = document.createElement('script');
+  s.dataset.tcMobileNav = '1';
+  s.src = new URL('./assets/mobile-nav.js?v=20260910a', document.currentScript?.src || location.href).href;
+  s.defer = true;
+  s.addEventListener('error', () => console.error('[TheCareers] mobile navigation failed to load'));
+  document.head.appendChild(s);
+})();
+
 // Job title is the primary decision field in Top Opportunities.
 (() => {
   const style = document.createElement('style');
