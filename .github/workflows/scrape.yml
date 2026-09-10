@@ -9,8 +9,8 @@ on:
       - 'package.json'
       - '.github/workflows/scrape.yml'
   schedule:
-    # Every 2 hours. The actual crawl phase is capped at 5 minutes.
-    - cron: '17 */2 * * *'
+    # Every hour. Each run receives a fair rotating source batch from Supabase.
+    - cron: '17 * * * *'
 
 permissions:
   contents: read
@@ -38,16 +38,16 @@ jobs:
           TOKEN=$(printf '%s' "$RESPONSE" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).value))")
           echo "::add-mask::$TOKEN"
           echo "GITHUB_OIDC_TOKEN=$TOKEN" >> "$GITHUB_ENV"
-      - name: Run bounded 5-minute scrape cycle
+      - name: Run bounded 8-minute scrape cycle
         shell: bash
         env:
           SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
         run: |
           set +e
-          timeout --signal=TERM --kill-after=15s 300s npm run scrape
+          timeout --signal=TERM --kill-after=15s 480s npm run scrape
           code=$?
           if [ "$code" -eq 124 ] || [ "$code" -eq 143 ]; then
-            echo "Scrape time budget reached after 5 minutes; ending normally."
+            echo "Scrape time budget reached after 8 minutes; ending normally."
             exit 0
           fi
           exit "$code"
