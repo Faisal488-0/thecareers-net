@@ -33,6 +33,20 @@ window.THECAREERS_CONFIG = {
   };
 })();
 
+// Keep the existing filters and controls unchanged, but make Newest the
+// default visible ordering every time the dashboard opens. backend-bridge.js
+// owns the live controls in capture phase; one guarded click moves its default
+// from Relevance to Newest without replacing any filtering logic.
+(() => {
+  const applyNewestDefault = () => {
+    const sortCtl = document.querySelector('.select-like');
+    if (!sortCtl) return;
+    if (/Sort by:\s*Relevance/i.test(sortCtl.textContent || '')) sortCtl.click();
+  };
+  if (document.readyState === 'complete') requestAnimationFrame(applyNewestDefault);
+  else window.addEventListener('load', () => requestAnimationFrame(applyNewestDefault), { once: true });
+})();
+
 // Global Search Network enhancement is isolated in its own file so the rest of
 // the dashboard layout stays unchanged.
 (() => {
