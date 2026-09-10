@@ -45,7 +45,7 @@ const GENERIC_TITLE_PATTERNS = [
   /^industries$/i,
   /^insights$/i,
   /^events$/i,
-  /^our\s+(?:people|journey|firms)$/i,
+  /^our\s+(?:people|journey|firms|history)$/i,
   /^partners$/i,
   /^executives$/i,
   /^board\s+of\s+directors$/i,
@@ -61,6 +61,21 @@ const GENERIC_TITLE_PATTERNS = [
   /^global\s+site$/i,
   /^skip\s+to\s+content$/i,
   /^academic\s+support$/i,
+  /^academic\s+calendar$/i,
+  /^academics?\s+overview$/i,
+  /^school\s+(?:fees|policies|facilities)$/i,
+  /^fees$/i,
+  /^parent\s+services$/i,
+  /^university\s*&?\s*college\s+guidance$/i,
+  /^early\s+learning\s*:/i,
+  /^(?:elementary|middle|high)\s+school\s*:/i,
+  /^enroll$/i,
+  /^inquire$/i,
+  /^request\s+a\s+call\s+back$/i,
+  /^refer\s+a\s+friend$/i,
+  /^welcome$/i,
+  /^mission\s+(?:and|&)\s+vision$/i,
+  /^faculty$/i,
   /^why\s+should\s+you\s+join\s+us\s*\??$/i,
   /^training\s+programs$/i,
   /^faqs?$/i,
@@ -96,9 +111,6 @@ const GENERIC_TITLE_PATTERNS = [
   /^[×x]$/i
 ];
 
-// One-word navigation, geography and industry labels are a common failure mode
-// on career pages when broad anchor selectors are used. Real one-word role
-// titles remain allowed by ROLE_WORDS below.
 const ROLE_WORDS = new Set([
   'accountant','administrator','advisor','analyst','architect','assistant','associate','auditor',
   'barista','captain','cashier','chef','clerk','commis','consultant','controller','coordinator',
@@ -145,8 +157,6 @@ export function sanitizeJobTitle(value) {
     if (!ROLE_WORDS.has(w) && (PLACE_WORDS.has(words[0]) || TAXONOMY_WORDS.has(words[0]))) return null;
   }
 
-  // Reject short pure taxonomy/location labels such as "Oil & Gas", "South Korea"
-  // and "Financial Services" unless they also contain a recognisable role noun.
   if (words.length <= 4) {
     const normalized = words.map(w => w.replace(/s$/, ''));
     const hasRole = normalized.some(w => ROLE_WORDS.has(w));
@@ -185,10 +195,30 @@ export function sanitizeJobUrl(value) {
 export function normalizeJob(job, defaults = {}) {
   const title = sanitizeJobTitle(job.title);
   const url = sanitizeJobUrl(job.url);
+  const company = clean(job.company) || clean(defaults.company);
   const location = inferLocation(title, clean(job.location) || clean(defaults.location));
+
+  // Publish immediately only when the three core fields are trustworthy:
+  // a clear job title, a company/employer name, and a valid HTTP(S) job URL.
+  if (!title || !company || !url) {
+    return {
+      title: null,
+      company: company || null,
+      location,
+      employment_type: null,
+      category: null,
+      description: null,
+      published_at: null,
+      url: null,
+      source_name: clean(job.source_name) || clean(defaults.sourceName),
+      score: 0,
+      verified: false
+    };
+  }
+
   return {
     title,
-    company: clean(job.company) || clean(defaults.company),
+    company,
     location,
     employment_type: clean(job.employment_type) || null,
     category: clean(job.category) || clean(defaults.category) || null,
