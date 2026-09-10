@@ -4,6 +4,35 @@ window.THECAREERS_CONFIG = {
   SUPABASE_PUBLISHABLE_KEY: "sb_publishable_lJPgMCG-HAEnfRNEVJtSdg_pFaxAAuj"
 };
 
+// Live jobs freshness guard. The dashboard controller still performs all
+// rendering/scoring locally, but its Supabase jobs request is rewritten to load
+// the freshest active records first instead of an old score-heavy snapshot.
+// This runs synchronously before backend-bridge.js is parsed.
+(() => {
+  if (window.__THECAREERS_FRESH_JOBS_FETCH__) return;
+  window.__THECAREERS_FRESH_JOBS_FETCH__ = true;
+  const nativeFetch = window.fetch.bind(window);
+  const supabaseHost = (() => {
+    try { return new URL(window.THECAREERS_CONFIG.SUPABASE_URL).host; }
+    catch { return ''; }
+  })();
+
+  window.fetch = function(input, init) {
+    try {
+      if (typeof input === 'string') {
+        const u = new URL(input, location.href);
+        if (u.host === supabaseHost && u.pathname === '/rest/v1/jobs' && u.searchParams.get('status') === 'eq.active') {
+          u.searchParams.set('order', 'found_at.desc.nullslast,score.desc.nullslast');
+          const currentLimit = Number(u.searchParams.get('limit') || 0);
+          if (!currentLimit || currentLimit < 800) u.searchParams.set('limit', '800');
+          input = u.href;
+        }
+      }
+    } catch (_) {}
+    return nativeFetch(input, init);
+  };
+})();
+
 // Global Search Network enhancement is isolated in its own file so the rest of
 // the dashboard layout stays unchanged.
 (() => {
