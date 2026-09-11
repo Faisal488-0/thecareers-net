@@ -153,6 +153,18 @@ window.THECAREERS_CONFIG = {
   document.head.appendChild(s);
 })();
 
+// Compact job pagination: render only 10 opportunities at a time and show
+// numbered pages below the list, avoiding extremely long mobile/desktop scrolling.
+(() => {
+  if (document.querySelector('script[data-tc-jobs-pagination]')) return;
+  const s = document.createElement('script');
+  s.dataset.tcJobsPagination = '1';
+  s.src = new URL('./assets/jobs-pagination.js?v=20260911a', document.currentScript?.src || location.href).href;
+  s.defer = true;
+  s.addEventListener('error', () => console.error('[TheCareers] jobs pagination failed to load'));
+  document.head.appendChild(s);
+})();
+
 // Pre-launch fallback identity and legal navigation. Auth can replace this after load.
 (() => {
   const apply = () => {
