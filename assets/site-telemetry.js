@@ -11,6 +11,7 @@
   if (!base || !apiKey) return;
 
   const SESSION_KEY = 'thecareers_session_id_v1';
+  const VISIT_KEY = 'thecareers_visit_tracked_v2';
   let sessionId = sessionStorage.getItem(SESSION_KEY);
   if (!sessionId) {
     sessionId = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
@@ -25,14 +26,13 @@
     const out = {};
     for (const [k,v] of Object.entries(meta || {})) {
       if (v == null) continue;
-      const s = typeof v === 'string' ? v.slice(0, 500) : v;
-      out[k] = s;
+      out[k] = typeof v === 'string' ? v.slice(0, 500) : v;
     }
     return out;
   }
 
   async function track(eventType, meta = {}) {
-    if (!eventType) return;
+    if (!eventType) return false;
     const body = {
       event_type: String(eventType).slice(0, 64),
       session_id: sessionId,
@@ -42,7 +42,7 @@
       meta: cleanMeta(meta)
     };
     try {
-      await fetch(`${base}/rest/v1/site_events`, {
+      const response = await fetch(`${base}/rest/v1/site_events`, {
         method: 'POST',
         keepalive: true,
         headers: {
@@ -53,17 +53,25 @@
         },
         body: JSON.stringify(body)
       });
-    } catch (_) {}
+      if (!response.ok) {
+        console.warn('[TheCareers] telemetry rejected', response.status);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.warn('[TheCareers] telemetry unavailable');
+      return false;
+    }
   }
 
-  // One visit event per browser tab/session, rather than spamming every route change.
-  if (!sessionStorage.getItem('thecareers_visit_tracked_v1')) {
-    sessionStorage.setItem('thecareers_visit_tracked_v1', '1');
+  // Mark a visit as tracked only after the backend accepts it. A failed request
+  // is retried on the next page load instead of being silently suppressed.
+  if (!sessionStorage.getItem(VISIT_KEY)) {
     track('visit', {
       lang: navigator.language || '',
       viewport: `${innerWidth}x${innerHeight}`,
       device: innerWidth <= 760 ? 'mobile' : 'desktop'
-    });
+    }).then(ok => { if (ok) sessionStorage.setItem(VISIT_KEY, '1'); });
   }
 
   document.addEventListener('click', e => {
@@ -84,11 +92,8 @@
       track('cv_analyze_started');
       return;
     }
-    if (e.target.closest('#tcAuthSubmit')) {
-      track('auth_submit');
-    }
+    if (e.target.closest('#tcAuthSubmit')) track('auth_submit');
   }, true);
 
-  // Utility hook for auth/CV code and future features.
   window.TheCareersTelemetry = { track };
 })();
