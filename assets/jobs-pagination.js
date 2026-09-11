@@ -1,5 +1,6 @@
 /* TheCareers job-list pagination
-   Keeps long opportunity feeds compact: 10 jobs per page with numbered controls. */
+   Keeps long opportunity feeds compact: 10 jobs per page with numbered controls.
+   Country filtering is applied before pagination so each page still contains up to 10 matching jobs. */
 (() => {
   'use strict';
   if (window.__TC_JOBS_PAGINATION__) return;
@@ -20,13 +21,39 @@
     .tc-page-btn:disabled{opacity:.35;cursor:default}
     .tc-page-ellipsis{min-width:24px;text-align:center;color:#8a8f96;font:700 11px 'JetBrains Mono',monospace}
     .tc-page-summary{width:100%;text-align:center;margin-top:3px;color:#8a8f96;font-size:10px}
+    .tc-country-empty{margin:12px 10px 16px;padding:15px;border:1px dashed #dcdfe3;border-radius:11px;background:#fbfbfc;color:#5b6068;font-size:11px;text-align:center}
     @media(max-width:760px){.tc-jobs-pagination{gap:5px;padding:14px 6px 18px}.tc-page-btn{min-width:31px;height:31px;padding:0 7px;border-radius:8px;font-size:10px}.tc-page-summary{font-size:9.5px}}
   `;
   document.head.appendChild(style);
 
   function getList() { return document.getElementById('jobList'); }
-  function rows() { return Array.from(getList()?.querySelectorAll(':scope > .backend-job') || []); }
-  function signature(items) { return items.map(r => `${r.dataset.jobId || ''}|${r.dataset.jobUrl || ''}`).join('~'); }
+  function allRows() { return Array.from(getList()?.querySelectorAll(':scope > .backend-job') || []); }
+
+  function countryKey(row) {
+    const meta = row.querySelector('.job-meta span:first-child')?.textContent || '';
+    const text = meta.toLowerCase();
+    if (/kuwait|الكويت/.test(text)) return 'kuwait';
+    if (/united arab emirates|uae|dubai|abu dhabi|sharjah|الإمارات/.test(text)) return 'uae';
+    if (/saudi|riyadh|jeddah|dammam|khobar|السعودية/.test(text)) return 'saudi';
+    if (/qatar|doha|قطر/.test(text)) return 'qatar';
+    if (/oman|muscat|duqm|salalah|عمان/.test(text)) return 'oman';
+    if (/bahrain|manama|البحرين/.test(text)) return 'bahrain';
+    if (/gcc|gulf|الخليج/.test(text)) return 'gcc';
+    return 'other';
+  }
+
+  function rows() {
+    const selected = document.documentElement.dataset.tcCountryFilter || 'all';
+    const items = allRows();
+    if (selected === 'all') return items;
+    if (selected === 'gcc') return items.filter(r => ['kuwait','uae','saudi','qatar','oman','bahrain','gcc'].includes(countryKey(r)));
+    return items.filter(r => countryKey(r) === selected);
+  }
+
+  function signature(items) {
+    const selected = document.documentElement.dataset.tcCountryFilter || 'all';
+    return selected + '::' + items.map(r => `${r.dataset.jobId || ''}|${r.dataset.jobUrl || ''}`).join('~');
+  }
 
   function ensurePager(list) {
     let pager = document.getElementById('tcJobsPagination');
@@ -53,6 +80,11 @@
   }
 
   function renderPager(pager, totalItems, totalPages) {
+    if (totalItems === 0) {
+      pager.hidden = false;
+      pager.innerHTML = '<div class="tc-country-empty">No jobs are currently available for this country in the loaded results.</div>';
+      return;
+    }
     if (totalPages <= 1) {
       pager.hidden = true;
       pager.innerHTML = '';
@@ -75,22 +107,26 @@
     if (!list) return;
     applying = true;
     try {
-      const items = rows();
-      const sig = signature(items);
+      const matched = rows();
+      const visibleSet = new Set(matched);
+      const sig = signature(matched);
       if (resetIfChanged && sig !== lastSignature) currentPage = 1;
       lastSignature = sig;
 
-      const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+      const totalPages = Math.max(1, Math.ceil(matched.length / PAGE_SIZE));
       currentPage = Math.min(Math.max(1, currentPage), totalPages);
       const from = (currentPage - 1) * PAGE_SIZE;
       const to = from + PAGE_SIZE;
-      items.forEach((row, index) => {
-        row.style.display = index >= from && index < to ? '' : 'none';
-        row.setAttribute('aria-hidden', index >= from && index < to ? 'false' : 'true');
+
+      allRows().forEach(row => {
+        const idx = matched.indexOf(row);
+        const show = visibleSet.has(row) && idx >= from && idx < to;
+        row.style.display = show ? '' : 'none';
+        row.setAttribute('aria-hidden', show ? 'false' : 'true');
       });
 
       const pager = ensurePager(list);
-      renderPager(pager, items.length, totalPages);
+      renderPager(pager, matched.length, totalPages);
       if (scroll) list.scrollIntoView({behavior:'smooth', block:'start'});
     } finally {
       applying = false;
@@ -113,6 +149,11 @@
       setTimeout(() => apply({resetIfChanged:false}), 50);
     }
   }, true);
+
+  document.addEventListener('tc:country-filter-change', () => {
+    currentPage = 1;
+    apply({resetIfChanged:true, scroll:false});
+  });
 
   function boot() {
     const list = getList();
