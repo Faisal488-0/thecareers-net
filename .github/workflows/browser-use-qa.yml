@@ -1,0 +1,55 @@
+name: Browser Use QA Audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 1 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BROWSER_USE_API_KEY: ${{ secrets.BROWSER_USE_API_KEY }}
+      THECAREERS_QA_URL: https://thecareers.net/
+      THECAREERS_QA_REPORT: qa/browser-use-report.md
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: qa/requirements.txt
+
+      - name: Verify Browser Use secret
+        shell: bash
+        run: |
+          if [ -z "$BROWSER_USE_API_KEY" ]; then
+            echo "BROWSER_USE_API_KEY secret is not configured."
+            echo "Create a Browser Use Cloud API key and add it as repository secret BROWSER_USE_API_KEY."
+            exit 2
+          fi
+
+      - name: Install Browser Use
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r qa/requirements.txt
+          python -m playwright install chromium --with-deps
+
+      - name: Audit thecareers.net
+        run: python qa/browser_use_audit.py
+
+      - name: Upload QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: thecareers-browser-use-qa
+          path: qa/browser-use-report.md
+          if-no-files-found: warn
+          retention-days: 14
