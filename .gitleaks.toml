@@ -1,0 +1,12 @@
+title = "TheCareers Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+# False-positive only: this literal is a localStorage slot name, not a credential.
+# Keep the exception scoped to the generic API-key rule and the exact value.
+[[allowlists]]
+targetRules = ["generic-api-key"]
+description = "Telemetry localStorage visitor slot is not a secret"
+regexTarget = "secret"
+regexes = ['''^thecareers_visitor_id_v1$''']
