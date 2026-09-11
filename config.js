@@ -4,6 +4,17 @@ window.THECAREERS_CONFIG = {
   SUPABASE_PUBLISHABLE_KEY: "sb_publishable_lJPgMCG-HAEnfRNEVJtSdg_pFaxAAuj"
 };
 
+// UI/UX Pro Max visual polish layer. Kept isolated for easy rollback and so
+// dashboard/search/backend behavior stays untouched.
+(() => {
+  if (document.querySelector('link[data-tc-uiux-pro-max]')) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.dataset.tcUiuxProMax = '1';
+  link.href = new URL('./assets/ui-ux-pro-max.css?v=20260912a', document.currentScript?.src || location.href).href;
+  document.head.appendChild(link);
+})();
+
 // Live jobs freshness guard. The dashboard controller still performs all
 // rendering/scoring locally, but its Supabase jobs request is rewritten to load
 // the freshest active records first instead of an old score-heavy snapshot.
