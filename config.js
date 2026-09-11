@@ -22,9 +22,9 @@ window.THECAREERS_CONFIG = {
       if (typeof input === 'string') {
         const u = new URL(input, location.href);
         if (u.host === supabaseHost && u.pathname === '/rest/v1/jobs' && u.searchParams.get('status') === 'eq.active') {
-          u.searchParams.set('order', 'found_at.desc.nullslast,score.desc.nullslast');
+          u.searchParams.set('order', 'found_at.desc.nullslast,published_at.desc.nullslast,score.desc.nullslast');
           const currentLimit = Number(u.searchParams.get('limit') || 0);
-          if (!currentLimit || currentLimit < 800) u.searchParams.set('limit', '800');
+          if (!currentLimit || currentLimit < 1200) u.searchParams.set('limit', '1200');
           input = u.href;
         }
       }
@@ -33,18 +33,30 @@ window.THECAREERS_CONFIG = {
   };
 })();
 
-// Keep the existing filters and controls unchanged, but make Newest the
-// default visible ordering every time the dashboard opens. backend-bridge.js
-// owns the live controls in capture phase; one guarded click moves its default
-// from Relevance to Newest without replacing any filtering logic.
+// Keep the existing filters and controls unchanged, but always open the live
+// opportunity list on All Jobs + Newest. This prevents the High Match tab from
+// hiding fresh low-score jobs and making the site look stale.
 (() => {
-  const applyNewestDefault = () => {
+  const applyFreshestDefault = () => {
+    const allTab = document.querySelector('.tab[data-tab="all"]');
     const sortCtl = document.querySelector('.select-like');
-    if (!sortCtl) return;
-    if (/Sort by:\s*Relevance/i.test(sortCtl.textContent || '')) sortCtl.click();
+    if (allTab && !allTab.classList.contains('active')) allTab.click();
+    if (sortCtl && !/Sort by:\s*Newest/i.test(sortCtl.textContent || '')) {
+      for (let i = 0; i < 3 && !/Sort by:\s*Newest/i.test(sortCtl.textContent || ''); i++) sortCtl.click();
+    }
   };
-  if (document.readyState === 'complete') requestAnimationFrame(applyNewestDefault);
-  else window.addEventListener('load', () => requestAnimationFrame(applyNewestDefault), { once: true });
+  const boot = () => {
+    let tries = 0;
+    const timer = setInterval(() => {
+      applyFreshestDefault();
+      tries += 1;
+      const allActive = document.querySelector('.tab[data-tab="all"]')?.classList.contains('active');
+      const newest = /Sort by:\s*Newest/i.test(document.querySelector('.select-like')?.textContent || '');
+      if ((allActive && newest) || tries >= 20) clearInterval(timer);
+    }, 150);
+  };
+  if (document.readyState === 'complete') boot();
+  else window.addEventListener('load', boot, { once: true });
 })();
 
 // Global Search Network enhancement is isolated in its own file so the rest of
