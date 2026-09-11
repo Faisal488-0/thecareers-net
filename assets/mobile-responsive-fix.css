@@ -1,12 +1,34 @@
 /* TheCareers mobile responsive hardening — visual only.
    Keeps desktop and backend/search behavior unchanged. */
 @media (max-width: 760px) {
-  html, body { width:100%; max-width:100%; overflow-x:hidden; }
+  html, body {
+    width:100%; max-width:100%; overflow-x:hidden!important;
+    overflow-y:auto!important; height:auto!important; min-height:100%!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-y:auto!important;
+    touch-action:pan-y!important;
+  }
   body { font-size:13px; }
-  .app { display:block !important; min-width:0 !important; }
-  .main { width:100% !important; min-width:0 !important; }
-  .content { width:100% !important; padding:10px 8px 28px !important; gap:12px !important; }
+  .app { display:block !important; min-width:0 !important; height:auto!important; min-height:100vh!important; overflow:visible!important; }
+  .main { width:100% !important; min-width:0 !important; height:auto!important; overflow:visible!important; }
+  .content { width:100% !important; padding:10px 8px 28px !important; gap:12px !important; overflow:visible!important; touch-action:pan-y!important; }
   .panel { width:100% !important; max-width:100% !important; border-radius:14px !important; overflow:hidden; }
+
+  /* Critical mobile scroll fix: interactive globe may rotate on desktop, but on
+     touch screens a vertical finger gesture must belong to page scrolling. */
+  #thecareers-globe-stage,
+  #thecareers-ai-globe,
+  #thecareers-ai-globe canvas,
+  #thecareers-ai-globe svg,
+  .core-visual.thecareers-globe-zone {
+    touch-action:pan-y!important;
+    overscroll-behavior:auto!important;
+  }
+  #thecareers-globe-stage { user-select:none; -webkit-user-select:none; }
+
+  /* Prevent an accidental stale nav-open state from trapping the page scroll
+     unless the actual mobile drawer is visibly open. */
+  body:not(.tc-mobile-nav-open) { overflow-y:auto!important; position:static!important; }
 
   /* Top bar: menu + Search Now only, without horizontal overflow. */
   .topbar { min-height:60px !important; padding:8px 8px 8px 60px !important; gap:8px !important; }
