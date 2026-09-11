@@ -71,6 +71,18 @@ window.THECAREERS_CONFIG = {
   document.head.appendChild(s);
 })();
 
+// Desktop-only source cards and attraction-flow layer. This deliberately targets
+// only the existing Global Search Network (.net-body) and does not alter any other UI.
+(() => {
+  if (document.querySelector('script[data-tc-network-desktop-flow]')) return;
+  const s = document.createElement('script');
+  s.dataset.tcNetworkDesktopFlow = '1';
+  s.src = new URL('./assets/network-desktop-flow.js?v=20260911a', document.currentScript?.src || location.href).href;
+  s.defer = true;
+  s.addEventListener('error', () => console.error('[TheCareers] desktop network flow failed to load'));
+  document.head.appendChild(s);
+})();
+
 // Mobile navigation drawer. The original stylesheet hides .sidebar below 760px;
 // this isolated enhancement restores it as an accessible off-canvas menu.
 (() => {
