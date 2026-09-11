@@ -1,0 +1,125 @@
+/* TheCareers mobile responsive hardening — visual only.
+   Keeps desktop and backend/search behavior unchanged. */
+@media (max-width: 760px) {
+  html, body { width:100%; max-width:100%; overflow-x:hidden; }
+  body { font-size:13px; }
+  .app { display:block !important; min-width:0 !important; }
+  .main { width:100% !important; min-width:0 !important; }
+  .content { width:100% !important; padding:10px 8px 28px !important; gap:12px !important; }
+  .panel { width:100% !important; max-width:100% !important; border-radius:14px !important; overflow:hidden; }
+
+  /* Top bar: menu + Search Now only, without horizontal overflow. */
+  .topbar { min-height:60px !important; padding:8px 8px 8px 60px !important; gap:8px !important; }
+  .topbar-left, .topbar-right .status-chip { display:none !important; }
+  .topbar-right { width:100% !important; min-width:0 !important; gap:7px !important; justify-content:flex-end !important; }
+  .search-now { min-height:40px !important; padding:9px 13px !important; border-radius:11px !important; font-size:12px !important; white-space:nowrap; }
+  .profile { padding-left:7px !important; border-left:0 !important; }
+  .profile .avatar { width:34px !important; height:34px !important; }
+
+  /* AI Search Core: stack cleanly, globe first, metrics second. */
+  .row-core { display:block !important; width:100% !important; }
+  .row-core > section:first-child { width:100% !important; overflow:hidden !important; }
+  .row-core > section:nth-child(2) { display:none !important; }
+  .row-core > section:first-child .panel-head {
+    display:flex !important; align-items:flex-start !important; justify-content:space-between !important;
+    gap:8px !important; padding:12px 12px 0 !important;
+  }
+  .row-core > section:first-child .panel-title { font-size:13px !important; gap:7px !important; }
+  .row-core > section:first-child .panel-title .sq { width:24px !important; height:24px !important; }
+  .row-core > section:first-child .panel-sub { font-size:9px !important; }
+  .row-core > section:first-child .panel-head > :last-child { width:auto !important; min-width:118px !important; text-align:right !important; }
+  .row-core > section:first-child .panel-head > :last-child .panel-sub { text-align:right !important; font-size:8px !important; }
+  .row-core > section:first-child .live-pill { width:auto !important; max-width:none !important; min-height:22px !important; padding:3px 8px !important; font-size:8px !important; justify-content:flex-start !important; }
+
+  .row-core .core-body { display:flex !important; flex-direction:column !important; gap:12px !important; padding:10px 10px 14px !important; }
+  .row-core .core-body > div:first-child { width:100% !important; min-width:0 !important; }
+  .row-core .core-visual.thecareers-globe-zone {
+    display:grid !important;
+    grid-template-columns:1fr 1fr 1fr !important;
+    grid-template-rows:auto auto !important;
+    gap:6px !important;
+    min-height:0 !important;
+    padding:0 !important;
+    align-items:center !important;
+    overflow:hidden !important;
+  }
+  .row-core .thecareers-globe-zone #thecareers-globe-stage {
+    grid-column:1 / 4 !important; grid-row:1 !important;
+    width:min(84vw, 360px) !important; max-width:360px !important; margin:0 auto !important;
+  }
+  .globe-hint { display:none !important; }
+
+  /* Six category cards become compact two-row grid below globe. */
+  .row-core .source-chip {
+    position:static !important; transform:none !important;
+    width:100% !important; max-width:none !important; min-width:0 !important;
+    min-height:42px !important; padding:6px 7px !important; gap:6px !important;
+    border-radius:9px !important; justify-self:stretch !important;
+  }
+  .row-core .source-chip .ic { width:18px !important; height:18px !important; min-width:18px !important; border-radius:6px !important; }
+  .row-core .source-chip .ic svg { width:10px !important; height:10px !important; }
+  .row-core .source-chip .lbl { min-width:0 !important; }
+  .row-core .source-chip .lbl b { font-size:7.5px !important; line-height:1.1 !important; white-space:normal !important; }
+  .row-core .source-chip .lbl span { font-size:6.5px !important; line-height:1.15 !important; white-space:normal !important; }
+  .row-core .sc-companies{grid-column:1!important;grid-row:2!important}.row-core .sc-schools{grid-column:2!important;grid-row:2!important}.row-core .sc-international{grid-column:3!important;grid-row:2!important}
+  .row-core .sc-oilgas{grid-column:1!important;grid-row:3!important}.row-core .sc-government{grid-column:2!important;grid-row:3!important}.row-core .sc-talent{grid-column:3!important;grid-row:3!important}
+
+  /* Right analytics rail becomes full-width stacked card. */
+  .row-core .metrics-col {
+    width:100% !important; min-width:0 !important; padding:10px 0 0 !important;
+    border-left:0 !important; border-top:1px solid var(--line,#e7e9ec) !important;
+    display:grid !important; grid-template-columns:1fr 1fr !important; gap:10px 14px !important;
+  }
+  .row-core .tc-scan-rail { grid-column:1 / -1 !important; padding:0 0 10px !important; margin:0 !important; }
+  .row-core .tc-scan-rail .src-list { display:grid !important; grid-template-columns:1fr 1fr !important; gap:6px 12px !important; margin-top:8px !important; }
+  .row-core .tc-scan-rail .src-row { min-height:18px !important; font-size:9px !important; gap:5px !important; }
+  .row-core .tc-scan-rail .src-row .val { font-size:8px !important; }
+  .row-core .tc-scan-rail .tc-src-icon { width:17px !important; height:17px !important; flex-basis:17px !important; }
+  .row-core .tc-scan-rail .tc-src-icon svg { width:10px !important; height:10px !important; }
+  .metric-big { min-width:0 !important; }
+  .metric-big .num { font-size:17px !important; }
+  .metric-big .lbl { font-size:8px !important; }
+  .metric-spark { height:18px !important; }
+  .ai-working { grid-column:1 / -1 !important; font-size:9px !important; padding-top:9px !important; }
+
+  /* KPI cards: 2 x 2 instead of tiny four-wide strip. */
+  .stat-row { width:100% !important; max-width:none !important; margin:0 !important; display:grid !important; grid-template-columns:1fr 1fr !important; gap:8px !important; }
+  .stat-row .stat-card { width:100% !important; padding:9px 10px 8px !important; min-width:0 !important; }
+  .stat-row .stat-num { font-size:18px !important; }
+  .stat-row .stat-title { font-size:9px !important; }
+  .stat-row .stat-sub { font-size:8px !important; white-space:normal !important; }
+  .stat-row .stat-spark { height:14px !important; }
+
+  /* Country filters: horizontal swipe row, no wrap overflow. */
+  .tc-country-filter, .tc-country-filter-row, [data-tc-country-filter] {
+    max-width:100% !important; overflow-x:auto !important; overflow-y:hidden !important; white-space:nowrap !important;
+    -webkit-overflow-scrolling:touch; scrollbar-width:none;
+  }
+  .tc-country-filter::-webkit-scrollbar, .tc-country-filter-row::-webkit-scrollbar, [data-tc-country-filter]::-webkit-scrollbar { display:none; }
+
+  /* Opportunities toolbar wraps cleanly and remains touch-friendly. */
+  .row-opps { display:block !important; width:100% !important; }
+  .row-opps > section:first-child { width:100% !important; }
+  .row-opps .panel-head { padding:12px 12px 0 !important; }
+  .row-opps .panel-title { font-size:14px !important; }
+  .row-opps .opps-toolbar { display:flex !important; flex-direction:column !important; align-items:stretch !important; gap:8px !important; padding:10px 10px 8px !important; }
+  .row-opps .tabs { display:flex !important; gap:6px !important; overflow-x:auto !important; padding-bottom:2px !important; scrollbar-width:none; }
+  .row-opps .tabs::-webkit-scrollbar { display:none; }
+  .row-opps .tab { flex:0 0 auto !important; min-height:34px !important; padding:7px 10px !important; font-size:10px !important; white-space:nowrap !important; }
+  .row-opps .opps-actions { width:100% !important; display:flex !important; gap:7px !important; margin:0 !important; }
+  .row-opps .select-like, .row-opps .filter-btn { flex:1 1 0 !important; min-height:34px !important; padding:7px 9px !important; font-size:10px !important; text-align:center !important; }
+
+  /* Global network stays within viewport. */
+  .net-body { min-height:300px !important; height:300px !important; overflow:hidden !important; }
+  .net-node { transform:scale(.82) !important; transform-origin:center !important; }
+  .workflow { overflow-x:auto !important; white-space:nowrap !important; justify-content:flex-start !important; padding:10px !important; }
+}
+
+@media (max-width: 390px) {
+  .content { padding-left:6px !important; padding-right:6px !important; }
+  .row-core .thecareers-globe-zone #thecareers-globe-stage { width:min(88vw, 330px) !important; }
+  .row-core .source-chip .lbl span { display:none !important; }
+  .row-core .metrics-col { grid-template-columns:1fr !important; }
+  .row-core .tc-scan-rail, .row-core .ai-working { grid-column:1 !important; }
+  .row-core .tc-scan-rail .src-list { grid-template-columns:1fr 1fr !important; }
+}
