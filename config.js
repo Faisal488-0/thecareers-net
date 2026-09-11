@@ -131,6 +131,18 @@ window.THECAREERS_CONFIG = {
   document.head.appendChild(s);
 })();
 
+// Privacy-minimized product analytics. Events are stored in the backend and
+// Telegram delivery is handled server-side, never from browser secrets.
+(() => {
+  if (document.querySelector('script[data-tc-site-telemetry]')) return;
+  const s = document.createElement('script');
+  s.dataset.tcSiteTelemetry = '1';
+  s.src = new URL('./assets/site-telemetry.js?v=20260911a', document.currentScript?.src || location.href).href;
+  s.defer = true;
+  s.addEventListener('error', () => console.error('[TheCareers] telemetry failed to load'));
+  document.head.appendChild(s);
+})();
+
 // Customer-facing settings must not expose backend/vendor implementation names.
 (() => {
   if (document.querySelector('script[data-tc-ui-copy-cleanup]')) return;
