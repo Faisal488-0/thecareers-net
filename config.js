@@ -131,6 +131,16 @@ window.THECAREERS_CONFIG = {
   document.head.appendChild(s);
 })();
 
+// Customer-facing settings must not expose backend/vendor implementation names.
+(() => {
+  if (document.querySelector('script[data-tc-ui-copy-cleanup]')) return;
+  const s = document.createElement('script');
+  s.dataset.tcUiCopyCleanup = '1';
+  s.src = new URL('./assets/ui-copy-cleanup.js?v=20260911a', document.currentScript?.src || location.href).href;
+  s.defer = true;
+  document.head.appendChild(s);
+})();
+
 // Pre-launch fallback identity and legal navigation. Auth can replace this after load.
 (() => {
   const apply = () => {
