@@ -24,8 +24,6 @@
       if (/^Refresh\s+Supabase\s+data\s+now$/i.test(text)) el.textContent = 'Refresh live data now';
     });
 
-    // Move Sources Scanning into the existing right rail so it sits immediately
-    // to the right of the globe, directly below the REAL-TIME SEARCH VISUALIZATION label.
     const coreBody = document.querySelector('.row-core .core-body');
     const metrics = coreBody?.querySelector('.metrics-col');
     const scan = coreBody?.querySelector('.sources-scan');
@@ -34,7 +32,6 @@
       scan.classList.add('tc-scan-rail');
     }
 
-    // Replace generic green bullets with compact source-specific job/search icons.
     document.querySelectorAll('.tc-scan-rail .src-row').forEach((row, i) => {
       const name = row.querySelector('.name');
       if (!name || name.querySelector('.tc-src-icon')) return;
@@ -47,141 +44,116 @@
     });
   };
 
-  // User-approved dashboard cleanup:
-  // remove only the visible Live Search Activity card and let AI Search Core
-  // use the freed horizontal space. Background activity/search logic remains intact.
   if (!document.getElementById('tc-wide-ai-core-layout')) {
     const style = document.createElement('style');
     style.id = 'tc-wide-ai-core-layout';
     style.textContent = `
-      .row-core {
-        grid-template-columns: minmax(0, 1fr) !important;
+      .row-core { grid-template-columns:minmax(0,1fr)!important; }
+      .row-core > section:nth-child(2){display:none!important;}
+      .row-core > section:first-child{width:100%!important;max-width:none!important;overflow:hidden!important;}
+
+      /* Keep the top live status visually inside the right-side rail. */
+      .row-core > section:first-child .panel-head{
+        display:grid!important;
+        grid-template-columns:minmax(0,1fr) 300px!important;
+        gap:24px!important;
+        align-items:start!important;
       }
-      .row-core > section:nth-child(2) {
-        display: none !important;
+      .row-core > section:first-child .panel-head > :last-child{
+        width:100%!important;
+        min-width:0!important;
+        text-align:left!important;
       }
-      .row-core > section:first-child {
-        width: 100% !important;
-        max-width: none !important;
+      .row-core > section:first-child .panel-head > :last-child .panel-sub{
+        text-align:left!important;
+        white-space:normal!important;
+      }
+      .row-core > section:first-child .live-pill{
+        width:100%!important;
+        max-width:160px!important;
+        min-width:0!important;
+        height:26px!important;
+        padding:0 12px!important;
+        justify-content:flex-start!important;
+        border-radius:999px!important;
       }
 
-      /* Source scan now lives in the right rail beside the globe. */
-      .row-core .metrics-col {
-        min-width: 240px;
+      .row-core .metrics-col{min-width:0!important;overflow:visible!important;}
+      .row-core .tc-scan-rail{
+        padding:0 0 16px!important;
+        margin:0 0 2px!important;
+        border-bottom:1px dashed var(--line-strong);
       }
-      .row-core .tc-scan-rail {
-        padding: 0 0 16px !important;
-        margin: 0 0 2px !important;
-        border-bottom: 1px dashed var(--line-strong);
-      }
-      .row-core .tc-scan-rail .scan-head {
-        font-size: 9.5px;
-        letter-spacing: .11em;
-        margin-bottom: 3px;
-      }
-      .row-core .tc-scan-rail .scan-count {
-        font-size: 25px;
-        margin-top: 1px;
-        line-height: 1.08;
-      }
-      .row-core .tc-scan-rail .scan-count span {
-        font-size: 11px;
-      }
-      /* The old long green progress stripe is removed. The scan state is now
-         communicated by the live count and the compact source icons below. */
-      .row-core .tc-scan-rail .bar-track {
-        display: none !important;
-      }
-      .row-core .tc-scan-rail .src-list {
-        margin-top: 12px;
-        gap: 8px;
-      }
-      .row-core .tc-scan-rail .src-row {
-        min-height: 22px;
-        gap: 8px;
-        font-size: 10.5px;
-      }
-      .row-core .tc-scan-rail .src-row .name {
-        gap: 8px;
-        min-width: 0;
-      }
-      .row-core .tc-scan-rail .src-row .val {
-        font-size: 10px;
-        flex: 0 0 auto;
-      }
-      .tc-src-icon {
-        width: 20px;
-        height: 20px;
-        border-radius: 6px;
-        display: inline-grid;
-        place-items: center;
-        flex: 0 0 20px;
-        background: #f3f6f8;
-        border: 1px solid #dfe5ea;
-        color: #34506d;
-        box-shadow: 0 1px 2px rgba(20,22,26,.03);
-      }
-      .tc-src-icon svg {
-        width: 12px;
-        height: 12px;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 1.7;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-      .tc-src-icon-2, .tc-src-icon-6 { color: #2f6feb; background:#f1f5ff; border-color:#dce6ff; }
-      .tc-src-icon-3, .tc-src-icon-7 { color: #59636f; background:#f7f8f9; }
-      .tc-src-icon-4 { color: #48576a; background:#f4f6f8; }
-      .tc-src-icon-5 { color: #23885b; background:#f0faf5; border-color:#d8efe3; }
-      .tc-src-icon-8 { color: #7a5a2b; background:#fbf7ef; border-color:#eee2ce; }
+      .row-core .tc-scan-rail .scan-head{font-size:9.5px;letter-spacing:.11em;margin-bottom:3px;}
+      .row-core .tc-scan-rail .scan-count{font-size:25px;margin-top:1px;line-height:1.08;}
+      .row-core .tc-scan-rail .scan-count span{font-size:11px;}
+      .row-core .tc-scan-rail .bar-track{display:none!important;}
+      .row-core .tc-scan-rail .src-list{margin-top:12px;gap:8px;}
+      .row-core .tc-scan-rail .src-row{min-height:22px;gap:8px;font-size:10.5px;}
+      .row-core .tc-scan-rail .src-row .name{gap:8px;min-width:0;}
+      .row-core .tc-scan-rail .src-row .val{font-size:10px;flex:0 0 auto;}
+      .tc-src-icon{width:20px;height:20px;border-radius:6px;display:inline-grid;place-items:center;flex:0 0 20px;background:#f3f6f8;border:1px solid #dfe5ea;color:#34506d;box-shadow:0 1px 2px rgba(20,22,26,.03);}
+      .tc-src-icon svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+      .tc-src-icon-2,.tc-src-icon-6{color:#2f6feb;background:#f1f5ff;border-color:#dce6ff;}
+      .tc-src-icon-3,.tc-src-icon-7{color:#59636f;background:#f7f8f9;}
+      .tc-src-icon-4{color:#48576a;background:#f4f6f8;}
+      .tc-src-icon-5{color:#23885b;background:#f0faf5;border-color:#d8efe3;}
+      .tc-src-icon-8{color:#7a5a2b;background:#fbf7ef;border-color:#eee2ce;}
 
-      @media (min-width: 1000px) {
-        .row-core .core-body {
-          grid-template-columns: minmax(0, 1fr) 270px !important;
-          gap: 22px !important;
-          align-items: start !important;
+      @media (min-width:1000px){
+        .row-core .core-body{
+          grid-template-columns:minmax(0,1fr) 300px!important;
+          gap:28px!important;
+          align-items:start!important;
         }
-        .row-core .core-visual.thecareers-globe-zone {
-          grid-template-columns: minmax(180px,1fr) minmax(450px,36vw) minmax(180px,1fr) !important;
-          column-gap: 20px !important;
-          min-height: 465px !important;
-          padding-left: 10px !important;
-          padding-right: 10px !important;
+        .row-core .core-visual.thecareers-globe-zone{
+          grid-template-columns:minmax(145px,170px) minmax(420px,31vw) minmax(145px,170px)!important;
+          column-gap:18px!important;
+          row-gap:18px!important;
+          min-height:455px!important;
+          padding:10px 6px 6px!important;
+          overflow:visible!important;
         }
-        .row-core .thecareers-globe-zone #thecareers-globe-stage {
-          width: clamp(450px,36vw,690px) !important;
+        .row-core .thecareers-globe-zone #thecareers-globe-stage{
+          width:clamp(420px,31vw,610px)!important;
+          max-width:100%!important;
         }
-        .row-core .source-chip {
-          max-width: 200px !important;
+        .row-core .source-chip{
+          width:100%!important;
+          max-width:170px!important;
+          min-width:0!important;
+          padding:8px 10px!important;
+          transform:none!important;
         }
-        .row-core .metrics-col {
-          padding-left: 18px !important;
-          gap: 16px !important;
+        .row-core .sc-companies,.row-core .sc-schools,.row-core .sc-international{justify-self:start!important;}
+        .row-core .sc-oilgas,.row-core .sc-government,.row-core .sc-talent{justify-self:end!important;}
+        .row-core .metrics-col{
+          padding-left:20px!important;
+          border-left:1px solid var(--line)!important;
+          gap:16px!important;
+          width:300px!important;
         }
       }
 
-      @media (min-width: 1500px) {
-        .row-core .core-body {
-          grid-template-columns: minmax(0, 1fr) 290px !important;
+      @media (min-width:1500px){
+        .row-core > section:first-child .panel-head{grid-template-columns:minmax(0,1fr) 320px!important;}
+        .row-core .core-body{grid-template-columns:minmax(0,1fr) 320px!important;gap:34px!important;}
+        .row-core .core-visual.thecareers-globe-zone{
+          grid-template-columns:minmax(160px,190px) minmax(470px,33vw) minmax(160px,190px)!important;
+          column-gap:22px!important;
         }
-        .row-core .core-visual.thecareers-globe-zone {
-          grid-template-columns: minmax(210px,1fr) minmax(520px,38vw) minmax(210px,1fr) !important;
-        }
-        .row-core .thecareers-globe-zone #thecareers-globe-stage {
-          width: clamp(520px,38vw,740px) !important;
-        }
+        .row-core .thecareers-globe-zone #thecareers-globe-stage{width:clamp(470px,33vw,660px)!important;}
+        .row-core .source-chip{max-width:185px!important;}
+        .row-core .metrics-col{width:320px!important;}
       }
 
-      /* On smaller screens keep the existing responsive flow; Sources Scanning
-         falls back to a normal full-width block instead of squeezing the globe. */
-      @media (max-width: 999px) {
-        .row-core .metrics-col {
-          min-width: 0;
-        }
-        .row-core .tc-scan-rail {
-          padding-top: 8px !important;
-        }
+      @media (max-width:999px){
+        .row-core > section:first-child .panel-head{display:flex!important;grid-template-columns:none!important;gap:12px!important;}
+        .row-core > section:first-child .panel-head > :last-child{width:auto!important;text-align:right!important;}
+        .row-core > section:first-child .panel-head > :last-child .panel-sub{text-align:right!important;}
+        .row-core > section:first-child .live-pill{width:auto!important;max-width:none!important;height:auto!important;padding:4px 9px!important;}
+        .row-core .metrics-col{min-width:0!important;width:auto!important;}
+        .row-core .tc-scan-rail{padding-top:8px!important;}
       }
     `;
     document.head.appendChild(style);
@@ -189,13 +161,13 @@
 
   apply();
   const observer = new MutationObserver(apply);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  observer.observe(document.documentElement,{childList:true,subtree:true});
 
   if (!document.querySelector('script[data-tc-mobile-jobs-fix]')) {
-    const s = document.createElement('script');
-    s.dataset.tcMobileJobsFix = '1';
-    s.src = new URL('./mobile-jobs-fix.js?v=20260911b', document.currentScript?.src || location.href).href;
-    s.defer = true;
+    const s=document.createElement('script');
+    s.dataset.tcMobileJobsFix='1';
+    s.src=new URL('./mobile-jobs-fix.js?v=20260911b',document.currentScript?.src||location.href).href;
+    s.defer=true;
     document.head.appendChild(s);
   }
 })();
