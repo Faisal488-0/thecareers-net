@@ -165,6 +165,18 @@ window.THECAREERS_CONFIG = {
   document.head.appendChild(s);
 })();
 
+// Visual-only topbar cleanup requested by the user. This hides only the visible
+// banner/status copy while preserving Search Now, profile controls and behavior.
+(() => {
+  if (document.querySelector('script[data-tc-topbar-visibility-cleanup]')) return;
+  const s = document.createElement('script');
+  s.dataset.tcTopbarVisibilityCleanup = '1';
+  s.src = new URL('./assets/topbar-visibility-cleanup.js?v=20260911a', document.currentScript?.src || location.href).href;
+  s.defer = true;
+  s.addEventListener('error', () => console.error('[TheCareers] topbar visibility cleanup failed to load'));
+  document.head.appendChild(s);
+})();
+
 // Compact job pagination: render only 10 opportunities at a time and show
 // numbered pages below the list, avoiding extremely long mobile/desktop scrolling.
 (() => {
