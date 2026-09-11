@@ -131,6 +131,17 @@ window.THECAREERS_CONFIG = {
   document.head.appendChild(s);
 })();
 
+// Visible in-page tools: smart search, CV analysis, latest jobs, verified sources and account.
+(() => {
+  if (document.querySelector('script[data-tc-tool-dock]')) return;
+  const s = document.createElement('script');
+  s.dataset.tcToolDock = '1';
+  s.src = new URL('./assets/tool-dock.js?v=20260911a', document.currentScript?.src || location.href).href;
+  s.defer = true;
+  s.addEventListener('error', () => console.error('[TheCareers] in-page tool dock failed to load'));
+  document.head.appendChild(s);
+})();
+
 // Privacy-minimized product analytics. Events are stored in the backend and
 // Telegram delivery is handled server-side, never from browser secrets.
 (() => {
