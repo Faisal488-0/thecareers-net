@@ -1,6 +1,7 @@
 /* TheCareers dashboard visual tuning
    - Remove redundant Jobs by Sector panel (sector categories are already represented near the globe)
    - Reduce the four dashboard metric cards (Jobs Found / High Match / Sources Online / Applications) by ~40%
+   - Widen Top Opportunities to use the freed space and scale its controls/text by ~10%
    - Preserve globe/category layout and backend/search behavior
 */
 (() => {
@@ -70,12 +71,87 @@
       margin-top: 6px !important;
     }
 
+    /* Top Opportunities should occupy the full horizontal area now that the
+       Jobs by Sector panel is hidden. This removes the empty right-hand column. */
+    .row-opps {
+      grid-template-columns: minmax(0, 1fr) !important;
+      width: 100% !important;
+    }
+    .row-opps > section:first-child {
+      width: 100% !important;
+      max-width: none !important;
+    }
+    .row-opps > section[data-tc-removed-sector-panel='1'],
+    .row-opps > section:nth-child(2) {
+      display: none !important;
+    }
+
+    /* ~10% larger toolbar buttons and labels. */
+    .row-opps .panel-title {
+      font-size: 16px !important;
+    }
+    .row-opps .opps-toolbar {
+      padding-left: 18px !important;
+      padding-right: 18px !important;
+      gap: 14px !important;
+    }
+    .row-opps .tabs {
+      gap: 8px !important;
+    }
+    .row-opps .tab,
+    .row-opps .select-like,
+    .row-opps .filter-btn {
+      font-size: 12px !important;
+      min-height: 36px !important;
+      padding: 8px 14px !important;
+      border-radius: 11px !important;
+    }
+
+    /* ~10% larger readable job content while preserving the existing layout. */
+    .row-opps .job-main .title {
+      font-size: 17px !important;
+      line-height: 1.28 !important;
+    }
+    .row-opps .job-main .company {
+      font-size: 12.7px !important;
+    }
+    .row-opps .job-meta,
+    .row-opps .job-meta span {
+      font-size: 11px !important;
+    }
+    .row-opps .job-row {
+      min-height: 72px !important;
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+    }
+    .row-opps .job-score .pct,
+    .row-opps .job-score .score,
+    .row-opps .relevance {
+      font-size: 11px !important;
+    }
+    .row-opps .job-actions button,
+    .row-opps .job-action,
+    .row-opps .save-btn,
+    .row-opps .open-btn {
+      transform: scale(1.1);
+      transform-origin: center;
+    }
+
     @media (min-width: 1000px) {
       .stat-row {
         width: 72% !important;
         max-width: 980px !important;
         margin-left: auto !important;
         margin-right: auto !important;
+      }
+      .row-opps .opps-toolbar {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+      }
+      .row-opps .opps-actions {
+        margin-left: auto !important;
       }
     }
 
@@ -92,6 +168,19 @@
       }
       .stat-row .stat-card {
         padding: 9px 10px 8px !important;
+      }
+      .row-opps .panel-title {
+        font-size: 15px !important;
+      }
+      .row-opps .tab,
+      .row-opps .select-like,
+      .row-opps .filter-btn {
+        font-size: 11px !important;
+        min-height: 34px !important;
+        padding: 7px 11px !important;
+      }
+      .row-opps .job-main .title {
+        font-size: 15.5px !important;
       }
     }
   `;
