@@ -148,8 +148,20 @@ window.THECAREERS_CONFIG = {
   if (document.querySelector('script[data-tc-ui-copy-cleanup]')) return;
   const s = document.createElement('script');
   s.dataset.tcUiCopyCleanup = '1';
-  s.src = new URL('./assets/ui-copy-cleanup.js?v=20260911a', document.currentScript?.src || location.href).href;
+  s.src = new URL('./assets/ui-copy-cleanup.js?v=20260911d', document.currentScript?.src || location.href).href;
   s.defer = true;
+  document.head.appendChild(s);
+})();
+
+// Dashboard visual tuning: remove the redundant Jobs by Sector card and compact
+// the globe category cards by ~40% without changing backend/search behavior.
+(() => {
+  if (document.querySelector('script[data-tc-dashboard-layout-tuning]')) return;
+  const s = document.createElement('script');
+  s.dataset.tcDashboardLayoutTuning = '1';
+  s.src = new URL('./assets/dashboard-layout-tuning.js?v=20260911a', document.currentScript?.src || location.href).href;
+  s.defer = true;
+  s.addEventListener('error', () => console.error('[TheCareers] dashboard layout tuning failed to load'));
   document.head.appendChild(s);
 })();
 
