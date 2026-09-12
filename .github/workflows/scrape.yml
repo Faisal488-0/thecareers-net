@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'backend/scrape-oidc.mjs'
+      - 'backend/arbeitnow-ingest.mjs'
       - 'backend/skills/**'
       - 'package.json'
       - '.github/workflows/scrape.yml'
@@ -31,6 +32,23 @@ jobs:
           node-version: '24'
       - run: npm install --no-audit --no-fund
       - run: npx playwright install chromium
+
+      - name: Check configured job API secrets
+        shell: bash
+        env:
+          JSEARCH_API_KEY: ${{ secrets.JSEARCH_API_KEY }}
+          JOOBLE_KW_API_KEY: ${{ secrets.JOOBLE_KW_API_KEY }}
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+        run: |
+          for name in JSEARCH_API_KEY JOOBLE_KW_API_KEY ADZUNA_APP_ID ADZUNA_APP_KEY; do
+            if [ -n "${!name}" ]; then
+              echo "${name}=SET"
+            else
+              echo "${name}=MISSING"
+            fi
+          done
+
       - name: Get fresh GitHub OIDC token
         shell: bash
         run: |
@@ -38,6 +56,14 @@ jobs:
           TOKEN=$(printf '%s' "$RESPONSE" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).value))")
           echo "::add-mask::$TOKEN"
           echo "GITHUB_OIDC_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+
+      - name: Ingest Arbeitnow API
+        shell: bash
+        env:
+          SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
+          ARBEITNOW_PAGES: '1'
+        run: node backend/arbeitnow-ingest.mjs
+
       - name: Run bounded 8-minute scrape cycle
         shell: bash
         env:
