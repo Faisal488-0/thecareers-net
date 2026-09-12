@@ -1,0 +1,3 @@
+[submodule "tools/figranium"]
+	path = tools/figranium
+	url = https://github.com/figranium/figranium.git
