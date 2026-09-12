@@ -9,13 +9,13 @@
       const responsive = document.createElement('link');
       responsive.rel = 'stylesheet';
       responsive.dataset.tcMobileResponsiveFix = '1';
-      responsive.href = new URL('./mobile-responsive-fix.css?v=20260912c', document.currentScript?.src || location.href).href;
+      responsive.href = new URL('./mobile-responsive-fix.css?v=20260912d', document.currentScript?.src || location.href).href;
       document.head.appendChild(responsive);
     }
 
-    // Emergency scroll ownership rule for touch devices. amCharts deliberately
-    // captures drag gestures for globe rotation on desktop; on phones we give
-    // those gestures back to the browser so a finger drag always scrolls page.
+    // Mobile scrolling remains native, but the globe rendering layer is kept
+    // interactive. Horizontal globe gestures are handled by mobile-globe-touch.js,
+    // while vertical gestures continue to scroll the page.
     if (!document.getElementById('tc-mobile-scroll-ownership')) {
       const scrollStyle = document.createElement('style');
       scrollStyle.id = 'tc-mobile-scroll-ownership';
@@ -40,14 +40,10 @@
             touch-action:pan-y !important;
           }
           #thecareers-globe-stage,
-          .core-visual.thecareers-globe-zone {
-            touch-action:pan-y !important;
-          }
-          /* Disable only touch interaction with the amCharts rendering layer.
-             Animation remains visible; desktop mouse rotate/zoom is unaffected. */
           #thecareers-ai-globe,
-          #thecareers-ai-globe * {
-            pointer-events:none !important;
+          #thecareers-ai-globe *,
+          .core-visual.thecareers-globe-zone {
+            pointer-events:auto !important;
             touch-action:pan-y !important;
           }
         }
@@ -205,7 +201,6 @@
       if (next) setTimeout(() => closeBtn.focus({ preventScroll: true }), 0);
     };
 
-    // Never keep a stale scroll-lock after reload/navigation.
     document.body.classList.remove('tc-mobile-nav-open');
 
     menuBtn.addEventListener('click', () => setOpen(!document.body.classList.contains('tc-mobile-nav-open')));
@@ -228,4 +223,16 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
+})();
+
+// Load the balanced mobile globe gesture controller. It waits for the amCharts
+// globe API, so load order is safe even when the chart initializes later.
+(() => {
+  if (document.querySelector('script[data-tc-mobile-globe-touch]')) return;
+  const s = document.createElement('script');
+  s.dataset.tcMobileGlobeTouch = '1';
+  s.src = new URL('./mobile-globe-touch.js?v=20260912b', document.currentScript?.src || location.href).href;
+  s.defer = true;
+  s.addEventListener('error', () => console.error('[TheCareers] mobile globe touch controller failed to load'));
+  document.head.appendChild(s);
 })();
