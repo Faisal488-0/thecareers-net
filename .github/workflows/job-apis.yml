@@ -1,0 +1,72 @@
+name: TheCareers job APIs
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/jsearch-ingest.mjs'
+      - 'backend/jooble-ingest.mjs'
+      - '.github/workflows/job-apis.yml'
+  schedule:
+    # JSearch twice daily to stay comfortably inside free-tier request limits.
+    - cron: '23 2,14 * * *'
+    # Jooble Kuwait once daily; its free key has a lifetime request cap.
+    - cron: '37 3 * * *'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: thecareers-job-apis
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-audit --no-fund
+
+      - name: Verify configured API secrets
+        shell: bash
+        env:
+          JSEARCH_API_KEY: ${{ secrets.JSEARCH_API_KEY }}
+          JOOBLE_KW_API_KEY: ${{ secrets.JOOBLE_KW_API_KEY }}
+        run: |
+          missing=0
+          for name in JSEARCH_API_KEY JOOBLE_KW_API_KEY; do
+            if [ -n "${!name}" ]; then
+              echo "${name}=SET"
+            else
+              echo "${name}=MISSING"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Get fresh GitHub OIDC token
+        shell: bash
+        run: |
+          RESPONSE=$(curl -fsSL -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=thecareers-supabase")
+          TOKEN=$(printf '%s' "$RESPONSE" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).value))")
+          echo "::add-mask::$TOKEN"
+          echo "GITHUB_OIDC_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+
+      - name: Ingest JSearch Kuwait
+        if: github.event_name != 'schedule' || github.event.schedule == '23 2,14 * * *'
+        env:
+          JSEARCH_API_KEY: ${{ secrets.JSEARCH_API_KEY }}
+          SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
+        run: node backend/jsearch-ingest.mjs
+
+      - name: Ingest Jooble Kuwait
+        if: github.event_name != 'schedule' || github.event.schedule == '37 3 * * *'
+        env:
+          JOOBLE_KW_API_KEY: ${{ secrets.JOOBLE_KW_API_KEY }}
+          SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
+        run: node backend/jooble-ingest.mjs
