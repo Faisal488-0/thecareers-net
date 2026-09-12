@@ -1,0 +1,49 @@
+name: TheCareers API health
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/api-health.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check API configuration without exposing secrets
+        shell: bash
+        env:
+          JSEARCH_API_KEY: ${{ secrets.JSEARCH_API_KEY }}
+          JOOBLE_KW_API_KEY: ${{ secrets.JOOBLE_KW_API_KEY }}
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+        run: |
+          mkdir -p runtime
+          set_status() { if [ -n "$2" ]; then printf 'true'; else printf 'false'; fi; }
+          arbeitnow_http=$(curl -L -sS -o /tmp/arbeitnow.json -w '%{http_code}' --max-time 20 https://www.arbeitnow.com/api/job-board-api || true)
+          arbeitnow_ok=false
+          if [ "$arbeitnow_http" = "200" ] && grep -q '"data"' /tmp/arbeitnow.json 2>/dev/null; then arbeitnow_ok=true; fi
+          cat > runtime/api-health.json <<EOF
+          {
+            "checked_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "jsearch_api_key_set": $(set_status JSEARCH_API_KEY "$JSEARCH_API_KEY"),
+            "jooble_kw_api_key_set": $(set_status JOOBLE_KW_API_KEY "$JOOBLE_KW_API_KEY"),
+            "adzuna_app_id_set": $(set_status ADZUNA_APP_ID "$ADZUNA_APP_ID"),
+            "adzuna_app_key_set": $(set_status ADZUNA_APP_KEY "$ADZUNA_APP_KEY"),
+            "arbeitnow_api_ok": $arbeitnow_ok,
+            "arbeitnow_http": "$arbeitnow_http"
+          }
+          EOF
+      - name: Save non-secret health result
+        shell: bash
+        run: |
+          git config user.name 'thecareers-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add runtime/api-health.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'chore: update API health status [skip ci]'
+          git push
