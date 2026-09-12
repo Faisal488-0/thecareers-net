@@ -10,6 +10,7 @@
     ['all','All Countries','◎'],
     ['kuwait','Kuwait','KW'],
     ['uae','UAE','AE'],
+    ['gcc','GCC','GCC'],
     ['saudi','Saudi Arabia','SA'],
     ['qatar','Qatar','QA'],
     ['oman','Oman','OM'],
