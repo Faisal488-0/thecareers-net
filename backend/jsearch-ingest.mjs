@@ -6,9 +6,9 @@ const BRIDGE_URL = process.env.SUPABASE_GITHUB_BRIDGE_URL || 'https://cqqozlmsvy
 const OIDC_AUDIENCE = 'thecareers-supabase';
 const API_URL = 'https://api.openwebninja.com/jsearch/search-v2';
 const API_KEY = String(process.env.JSEARCH_API_KEY || '').trim();
-const QUERY = String(process.env.JSEARCH_QUERY || 'jobs in Kuwait').trim();
 const COUNTRY = String(process.env.JSEARCH_COUNTRY || 'kw').trim();
 const LANGUAGE = String(process.env.JSEARCH_LANGUAGE || 'en').trim();
+const QUERY_OVERRIDE = String(process.env.JSEARCH_QUERY || '').trim();
 
 let oidcToken = process.env.GITHUB_OIDC_TOKEN || '';
 
@@ -21,6 +21,25 @@ function fingerprint(job) {
     .map(v => clean(v).toLowerCase())
     .join('|');
   return crypto.createHash('sha256').update(raw).digest('hex');
+}
+
+function defaultQuery() {
+  if (QUERY_OVERRIDE) return QUERY_OVERRIDE;
+  const now = new Date();
+  const hour = now.getUTCHours();
+  if (hour < 12) return 'jobs in Kuwait';
+  const specialist = [
+    'teacher school education jobs in Kuwait',
+    'oil gas engineering technician jobs in Kuwait',
+    'HR administration operations jobs in Kuwait',
+    'accounting finance jobs in Kuwait',
+    'IT software support jobs in Kuwait',
+    'sales marketing business development jobs in Kuwait',
+    'healthcare medical jobs in Kuwait',
+    'logistics driver operator jobs in Kuwait'
+  ];
+  const day = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 86400000);
+  return specialist[day % specialist.length];
 }
 
 async function refreshOidcToken() {
@@ -65,22 +84,23 @@ async function bridge(action, payload = {}) {
 function bestApplyLink(row) {
   const options = Array.isArray(row?.apply_options) ? row.apply_options : [];
   const direct = options.find(option => option?.is_direct && /^https?:\/\//i.test(clean(option?.apply_link)));
-  return clean(direct?.apply_link || row?.job_apply_link || row?.job_google_link);
+  const firstValid = options.find(option => /^https?:\/\//i.test(clean(option?.apply_link)));
+  return clean(direct?.apply_link || row?.job_apply_link || firstValid?.apply_link || row?.job_google_link);
 }
 
 function mapJob(row) {
   return {
     title: clean(row?.job_title),
     company: clean(row?.employer_name),
-    location: clean(row?.job_location) || 'Kuwait',
+    location: clean(row?.job_location) || clean([row?.job_city, row?.job_state, row?.job_country].filter(Boolean).join(', ')) || 'Kuwait',
     employment_type: clean(row?.job_employment_type),
-    category: null,
+    category: clean(row?.job_function) || clean(row?.industry),
     description: clean(row?.job_description),
     published_at: clean(row?.job_posted_at_datetime_utc) || null,
     url: bestApplyLink(row),
     source_name: 'JSearch API',
     score: 0,
-    verified: false,
+    verified: Boolean(row?.job_apply_is_direct || (Array.isArray(row?.apply_options) && row.apply_options.some(option => option?.is_direct))),
     country: clean(row?.job_country) || 'KW',
     salary_min: Number.isFinite(Number(row?.job_min_salary)) ? Number(row.job_min_salary) : null,
     salary_max: Number.isFinite(Number(row?.job_max_salary)) ? Number(row.job_max_salary) : null,
@@ -92,8 +112,9 @@ async function main() {
   if (!API_KEY) throw new Error('JSEARCH_API_KEY is missing');
   await refreshOidcToken();
 
+  const query = defaultQuery();
   const url = new URL(API_URL);
-  url.searchParams.set('query', QUERY);
+  url.searchParams.set('query', query);
   url.searchParams.set('country', COUNTRY);
   url.searchParams.set('language', LANGUAGE);
   url.searchParams.set('date_posted', 'week');
@@ -133,14 +154,14 @@ async function main() {
 
   const unique = [...new Map(normalized.map(job => [job.fingerprint, job])).values()];
   if (!unique.length) {
-    console.log(`JSEARCH_API_OK fetched=${rows.length} submitted=0`);
+    console.log(`JSEARCH_API_OK query=${JSON.stringify(query)} fetched=${rows.length} submitted=0`);
     return;
   }
 
   const result = await bridge('upsert_jobs', { rows: unique });
   const stored = Number(result?.count ?? unique.length);
   const skipped = Number(result?.skipped_invalid || 0);
-  console.log(`JSEARCH_API_OK fetched=${rows.length} submitted=${unique.length} stored=${stored} skipped_invalid=${skipped}`);
+  console.log(`JSEARCH_API_OK query=${JSON.stringify(query)} fetched=${rows.length} submitted=${unique.length} stored=${stored} skipped_invalid=${skipped}`);
 }
 
 main().catch(error => {
