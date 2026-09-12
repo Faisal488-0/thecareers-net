@@ -6,8 +6,9 @@
   if (window.__TC_COUNTRY_FILTER__) return;
   window.__TC_COUNTRY_FILTER__ = true;
 
+  const globeIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.25"></circle><path d="M3.9 12h16.2M12 3.75c2.15 2.25 3.25 5 3.25 8.25S14.15 18 12 20.25M12 3.75C9.85 6 8.75 8.75 8.75 12S9.85 18 12 20.25"></path></svg>`;
   const countries = [
-    ['all','All Countries','◎'],
+    ['all','All Countries',globeIcon],
     ['kuwait','Kuwait','KW'],
     ['uae','UAE','AE'],
     ['gcc','GCC','GCC'],
@@ -40,6 +41,8 @@
       min-width:23px;height:20px;padding:0 4px;border-radius:6px;background:#edf3ff;color:#2f6feb;
       display:inline-grid;place-items:center;font:800 8px 'JetBrains Mono',monospace;
     }
+    .tc-country-btn[data-country="all"] .tc-flag{width:24px;min-width:24px;padding:0;background:rgba(255,255,255,.10);}
+    .tc-country-btn[data-country="all"] .tc-flag svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round;display:block;}
     .tc-country-btn[data-country="kuwait"] .tc-flag{background:#eef8f3;color:#15784b;}
     .tc-country-btn.active{
       color:#fff;background:#121417;border-color:#121417;
