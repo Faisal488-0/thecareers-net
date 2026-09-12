@@ -13,8 +13,7 @@
     ['saudi','Saudi Arabia','SA'],
     ['qatar','Qatar','QA'],
     ['oman','Oman','OM'],
-    ['bahrain','Bahrain','BH'],
-    ['gcc','GCC','GCC']
+    ['bahrain','Bahrain','BH']
   ];
 
   const style = document.createElement('style');
@@ -41,7 +40,6 @@
       display:inline-grid;place-items:center;font:800 8px 'JetBrains Mono',monospace;
     }
     .tc-country-btn[data-country="kuwait"] .tc-flag{background:#eef8f3;color:#15784b;}
-    .tc-country-btn[data-country="gcc"] .tc-flag{background:#fff3e6;color:#a76518;}
     .tc-country-btn.active{
       color:#fff;background:#121417;border-color:#121417;
       box-shadow:0 7px 18px -12px rgba(0,0,0,.65);
