@@ -4,194 +4,61 @@
   if (window.__TC_CV_PROFILE_MANAGER__) return;
   window.__TC_CV_PROFILE_MANAGER__ = true;
 
-  const cfg = window.THECAREERS_CONFIG || {};
-  const base = String(cfg.SUPABASE_URL || '').replace(/\/$/, '');
-  const apiKey = cfg.SUPABASE_PUBLISHABLE_KEY || '';
-  const SESSION_KEY = 'thecareers_auth_session_v1';
-  let analysisObserver = null;
-  let toastTimer = null;
+  const cfg=window.THECAREERS_CONFIG||{};
+  const base=String(cfg.SUPABASE_URL||'').replace(/\/$/,'');
+  const apiKey=cfg.SUPABASE_PUBLISHABLE_KEY||'';
+  const SESSION_KEY='thecareers_auth_session_v1';
+  let modalObserver=null,toastTimer=null;
 
-  const style = document.createElement('style');
-  style.id = 'tc-cv-profile-manager-style';
-  style.textContent = `
-    .tc-chip.tc-chip-editable{display:inline-flex;align-items:center;gap:0;position:relative;transition:background .16s ease,border-color .16s ease,box-shadow .16s ease;padding-right:7px}
+  const style=document.createElement('style');
+  style.id='tc-cv-profile-manager-style';
+  style.textContent=`
+    .tc-chip.tc-chip-editable{display:inline-flex;align-items:center;position:relative;transition:background .16s ease,border-color .16s ease,box-shadow .16s ease;padding-right:7px}
     .tc-chip.tc-chip-editable:hover,.tc-chip.tc-chip-editable:focus-within{background:#f7f9ff;border-color:#c8d7f4;box-shadow:0 2px 8px rgba(46,83,145,.08)}
     .tc-chip-remove{width:0;height:18px;opacity:0;overflow:hidden;margin-left:0;padding:0;border:0;border-radius:999px;background:#fff;color:#b42318;font-size:14px;font-weight:900;line-height:18px;cursor:pointer;transition:width .16s ease,opacity .16s ease,margin-left .16s ease,background .16s ease;display:inline-grid;place-items:center}
-    .tc-chip-editable:hover .tc-chip-remove,.tc-chip-editable:focus-within .tc-chip-remove{width:18px;opacity:1;margin-left:5px}
-    .tc-chip-remove:hover{background:#feeceb}
-    .tc-chip.tc-chip-saving{opacity:.55;pointer-events:none}
-    .tc-chip-empty{font-size:11px;color:#8a94a3;padding:7px 0}
-    .tc-cv-toast{position:fixed;right:24px;bottom:24px;z-index:10020;background:#101318;color:#fff;border-radius:12px;padding:11px 14px;font-size:11px;font-weight:700;box-shadow:0 12px 32px rgba(15,23,42,.22);opacity:0;transform:translateY(8px);transition:.18s ease;pointer-events:none}
-    .tc-cv-toast.show{opacity:1;transform:translateY(0)}.tc-cv-toast.err{background:#9f2f2f}
-    .tc-cv-manager-page{padding:20px 22px 34px;display:block;min-height:calc(100vh - 70px);background:#f7f9fc;overflow:auto}
-    .tc-cvm-shell{max-width:1260px;margin:0 auto}
-    .tc-cvm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}
-    .tc-cvm-eyebrow{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7d8794;font-weight:800;margin-bottom:6px}
-    .tc-cvm-title{font-size:28px;line-height:1.15;font-weight:850;letter-spacing:-.03em;color:#0d1117;margin:0}
-    .tc-cvm-sub{font-size:12px;color:#6c7684;margin-top:7px;max-width:720px;line-height:1.6}
-    .tc-cvm-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end}
-    .tc-cvm-btn{border:1px solid #d7dee8;background:#fff;border-radius:11px;padding:10px 14px;font-weight:800;font-size:11px;cursor:pointer;color:#171b21;transition:.16s ease}
-    .tc-cvm-btn:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(24,39,75,.08)}
-    .tc-cvm-btn.primary{background:#101318;color:#fff;border-color:#101318}.tc-cvm-btn.green{background:#1fb567;color:#fff;border-color:#1fb567}
-    .tc-cvm-hero{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr);gap:14px;margin-bottom:14px}
-    .tc-cvm-panel{background:#fff;border:1px solid #e0e6ee;border-radius:16px;padding:18px;box-shadow:0 7px 24px rgba(18,32,56,.04)}
-    .tc-cvm-statusline{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;color:#277248;margin-bottom:12px}.tc-cvm-statusdot{width:8px;height:8px;border-radius:50%;background:#1fb567;box-shadow:0 0 0 5px rgba(31,181,103,.10)}
-    .tc-cvm-summary{font-size:13px;line-height:1.65;color:#2e3742}.tc-cvm-file{margin-top:12px;padding-top:12px;border-top:1px solid #edf0f3;font-size:10.5px;color:#75808e;overflow-wrap:anywhere}
+    .tc-chip-editable:hover .tc-chip-remove,.tc-chip-editable:focus-within .tc-chip-remove{width:18px;opacity:1;margin-left:5px}.tc-chip-remove:hover{background:#feeceb}
+    .tc-chip.tc-chip-saving{opacity:.55;pointer-events:none}.tc-chip-empty{font-size:11px;color:#8a94a3;padding:7px 0}
+    .tc-cv-toast{position:fixed;right:24px;bottom:24px;z-index:10020;background:#101318;color:#fff;border-radius:12px;padding:11px 14px;font-size:11px;font-weight:700;box-shadow:0 12px 32px rgba(15,23,42,.22);opacity:0;transform:translateY(8px);transition:.18s ease;pointer-events:none}.tc-cv-toast.show{opacity:1;transform:translateY(0)}.tc-cv-toast.err{background:#9f2f2f}
+    .tc-cv-manager-page{padding:20px 22px 34px;min-height:calc(100vh - 70px);background:#f7f9fc;overflow:auto}.tc-cvm-shell{max-width:1260px;margin:0 auto}
+    .tc-cvm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}.tc-cvm-eyebrow{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7d8794;font-weight:800;margin-bottom:6px}.tc-cvm-title{font-size:28px;line-height:1.15;font-weight:850;letter-spacing:-.03em;color:#0d1117;margin:0}.tc-cvm-sub{font-size:12px;color:#6c7684;margin-top:7px;max-width:720px;line-height:1.6}
+    .tc-cvm-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end}.tc-cvm-btn{border:1px solid #d7dee8;background:#fff;border-radius:11px;padding:10px 14px;font-weight:800;font-size:11px;cursor:pointer;color:#171b21;transition:.16s ease}.tc-cvm-btn:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(24,39,75,.08)}.tc-cvm-btn.primary{background:#101318;color:#fff;border-color:#101318}
+    .tc-cvm-hero{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr);gap:14px;margin-bottom:14px}.tc-cvm-panel{background:#fff;border:1px solid #e0e6ee;border-radius:16px;padding:18px;box-shadow:0 7px 24px rgba(18,32,56,.04)}.tc-cvm-statusline{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;color:#277248;margin-bottom:12px}.tc-cvm-statusdot{width:8px;height:8px;border-radius:50%;background:#1fb567;box-shadow:0 0 0 5px rgba(31,181,103,.10)}.tc-cvm-summary{font-size:13px;line-height:1.65;color:#2e3742}.tc-cvm-file{margin-top:12px;padding-top:12px;border-top:1px solid #edf0f3;font-size:10.5px;color:#75808e;overflow-wrap:anywhere}
     .tc-cvm-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tc-cvm-stat{border:1px solid #e3e8ef;border-radius:13px;padding:13px;background:#fbfcfe}.tc-cvm-stat b{font-size:10px;text-transform:uppercase;color:#7c8795}.tc-cvm-stat strong{display:block;margin-top:4px;font-size:20px;color:#101318}
-    .tc-cvm-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.tc-cvm-card{background:#fff;border:1px solid #e0e6ee;border-radius:16px;padding:17px;min-height:150px}.tc-cvm-card.wide{grid-column:1/-1}.tc-cvm-cardhead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:11px}.tc-cvm-cardhead h3{font-size:12px;margin:0;color:#1d2733;text-transform:uppercase;letter-spacing:.035em}.tc-cvm-count{font-size:10px;color:#7c8795;background:#f3f6fa;border-radius:999px;padding:4px 8px}.tc-cvm-help{font-size:10.5px;color:#7d8794;line-height:1.55;margin:0 0 10px}
-    .tc-cvm-card .tc-chips{gap:7px}.tc-cvm-card .tc-chip{font-size:11px;padding:6px 9px}
-    .tc-cvm-note{margin-top:14px;border:1px solid #d8e5fb;background:#f7faff;color:#47617e;border-radius:13px;padding:12px 14px;font-size:10.5px;line-height:1.55}
+    .tc-cvm-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.tc-cvm-card{background:#fff;border:1px solid #e0e6ee;border-radius:16px;padding:17px;min-height:150px}.tc-cvm-card.wide{grid-column:1/-1}.tc-cvm-cardhead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:11px}.tc-cvm-cardhead h3{font-size:12px;margin:0;color:#1d2733;text-transform:uppercase;letter-spacing:.035em}.tc-cvm-count{font-size:10px;color:#7c8795;background:#f3f6fa;border-radius:999px;padding:4px 8px}.tc-cvm-help{font-size:10.5px;color:#7d8794;line-height:1.55;margin:0 0 10px}.tc-cvm-card .tc-chips{gap:7px}.tc-cvm-card .tc-chip{font-size:11px;padding:6px 9px}.tc-cvm-note{margin-top:14px;border:1px solid #d8e5fb;background:#f7faff;color:#47617e;border-radius:13px;padding:12px 14px;font-size:10.5px;line-height:1.55}
     @media(max-width:900px){.tc-cvm-hero,.tc-cvm-grid{grid-template-columns:1fr}.tc-cvm-card.wide{grid-column:auto}.tc-cvm-head{flex-direction:column}.tc-cvm-actions{justify-content:flex-start}}
-    @media(max-width:620px){.tc-cv-manager-page{padding:14px}.tc-cvm-title{font-size:23px}.tc-cvm-actions,.tc-cvm-actions .tc-cvm-btn{width:100%}.tc-cvm-stats{grid-template-columns:1fr 1fr}.tc-chip-remove{width:18px;opacity:1;margin-left:5px}}
+    @media(max-width:620px){.tc-cv-manager-page{padding:14px}.tc-cvm-title{font-size:23px}.tc-cvm-actions,.tc-cvm-actions .tc-cvm-btn{width:100%}.tc-chip-remove{width:18px;opacity:1;margin-left:5px}}
   `;
   document.head.appendChild(style);
 
-  const esc = (v='') => String(v).replace(/[&<>'\"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[s]));
-  const norm = v => String(v || '').trim().toLowerCase();
-  const arr = v => Array.isArray(v) ? v : [];
-  const sessionLoad = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } };
+  function esc(v=''){return String(v).replace(/[&<>"']/g,s=>s==='&'?'&amp;':s==='<'?'&lt;':s==='>'?'&gt;':s==='"'?'&quot;':'&#39;');}
+  const norm=v=>String(v||'').trim().toLowerCase();
+  const list=v=>Array.isArray(v)?v:[];
+  const session=()=>{try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null')}catch{return null}};
+  const account=()=>{const a=window.TheCareersAccount||{};return{user:a.user||null,analysis:a.analysis||null,preferences:a.preferences||null,profile:a.profile||null}};
 
-  function toast(message, error=false){
-    let el=document.getElementById('tcCvManagerToast');
-    if(!el){el=document.createElement('div');el.id='tcCvManagerToast';el.className='tc-cv-toast';document.body.appendChild(el);}
-    el.textContent=message;el.className=`tc-cv-toast${error?' err':''} show`;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1800);
-  }
+  function toast(msg,error=false){let el=document.getElementById('tcCvManagerToast');if(!el){el=document.createElement('div');el.id='tcCvManagerToast';document.body.appendChild(el)}el.textContent=msg;el.className=`tc-cv-toast${error?' err':''} show`;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1800)}
+  async function rest(path,options={}){const s=session();if(!s?.access_token)throw new Error('Your session expired. Please sign in again.');const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),12000);try{const res=await fetch(`${base}/rest/v1/${path}`,{...options,headers:{apikey:apiKey,'Content-Type':'application/json',Authorization:`Bearer ${s.access_token}`,...(options.headers||{})},signal:ctrl.signal});const text=await res.text();let data=null;try{data=text?JSON.parse(text):null}catch{data=text}if(!res.ok)throw new Error(data?.message||data?.error||`Request failed (${res.status})`);return data}finally{clearTimeout(timer)}}
 
-  async function api(path, options={}){
-    const session=sessionLoad();
-    if(!session?.access_token) throw new Error('Your session expired. Please sign in again.');
-    const headers={apikey:apiKey,'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`,...(options.headers||{})};
-    const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),12000);
-    try{
-      const res=await fetch(`${base}${path}`,{...options,headers,signal:ctrl.signal});
-      const text=await res.text();let data=null;try{data=text?JSON.parse(text):null;}catch{data=text;}
-      if(!res.ok)throw new Error(data?.message||data?.error||`Request failed (${res.status})`);
-      return data;
-    }finally{clearTimeout(timer);}
-  }
-  const rest=(path,options={})=>api(`/rest/v1/${path}`,options);
+  function kindOf(card){const t=(card?.querySelector('b,h3')?.textContent||'').toLowerCase();if(t.includes('target role'))return'role';if(t.includes('detected skill')||t==='skills')return'skill';if(t.includes('search sector')||t.includes('sector'))return'sector';return''}
+  function decorate(root=document){root.querySelectorAll?.('.tc-analysis-card,.tc-cvm-card').forEach(card=>{const kind=kindOf(card);if(!kind)return;card.querySelectorAll('.tc-chip').forEach(chip=>{if(chip.dataset.tcEditable==='1')return;const value=chip.textContent.trim();if(!value)return;chip.dataset.tcEditable='1';chip.dataset.kind=kind;chip.dataset.value=value;chip.classList.add('tc-chip-editable');const b=document.createElement('button');b.type='button';b.className='tc-chip-remove';b.title='Remove';b.setAttribute('aria-label',`Remove ${value}`);b.textContent='×';chip.appendChild(b)})})}
+  function watchModal(){const a=document.querySelector('.tc-modal #tcAnalysis');if(!a)return;decorate(a);if(a.dataset.tcManagerObserved==='1')return;a.dataset.tcManagerObserved='1';modalObserver?.disconnect();modalObserver=new MutationObserver(()=>decorate(a));modalObserver.observe(a,{childList:true,subtree:false})}
 
-  function kindFromCard(card){
-    const title=(card?.querySelector('b,h3')?.textContent||'').toLowerCase();
-    if(title.includes('target role'))return 'role';
-    if(title.includes('detected skill')||title==='skills')return 'skill';
-    if(title.includes('search sector')||title.includes('sector'))return 'sector';
-    return '';
-  }
+  async function saveRemoval(kind,value){const a=account(),u=a.user,an=a.analysis,p=a.preferences,pr=a.profile;if(!u?.id||!an)throw new Error('CV profile is not available.');const field=kind==='role'?'inferred_titles':kind==='skill'?'skills':'industries';const nextMain=list(an[field]).filter(x=>norm(x)!==norm(value));const nextKeywords=list(an.search_keywords).filter(x=>norm(x)!==norm(value));const filter=an.id?`id=eq.${encodeURIComponent(an.id)}`:an.cv_id?`cv_id=eq.${encodeURIComponent(an.cv_id)}`:`user_id=eq.${encodeURIComponent(u.id)}`;const writes=[rest(`cv_analysis?${filter}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({[field]:nextMain,search_keywords:nextKeywords})})];let pPatch=null,profilePatch=null;
+    if(p){pPatch={};if(kind==='role')pPatch.target_titles=list(p.target_titles).filter(x=>norm(x)!==norm(value));if(kind==='skill')pPatch.keywords=list(p.keywords).filter(x=>norm(x)!==norm(value));if(kind==='sector')pPatch.sectors=list(p.sectors).filter(x=>norm(x)!==norm(value));if(kind!=='skill')pPatch.keywords=list(p.keywords).filter(x=>norm(x)!==norm(value));writes.push(rest(`search_preferences?user_id=eq.${encodeURIComponent(u.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(pPatch)}))}
+    if(pr&&(kind==='role'||kind==='sector')){const key=kind==='role'?'target_roles':'preferred_sectors';profilePatch={[key]:list(pr[key]).filter(x=>norm(x)!==norm(value))};writes.push(rest(`profiles?id=eq.${encodeURIComponent(u.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(profilePatch)}))}
+    const results=await Promise.allSettled(writes),failed=results.find(r=>r.status==='rejected');if(failed)throw failed.reason;an[field]=nextMain;an.search_keywords=nextKeywords;if(pPatch)Object.assign(p,pPatch);if(profilePatch)Object.assign(pr,profilePatch);window.TheCareersAccount={...window.TheCareersAccount,analysis:an,preferences:p,profile:pr};return nextMain.length}
 
-  function decorateAnalysis(root=document){
-    root.querySelectorAll?.('.tc-analysis-card,.tc-cvm-card').forEach(card=>{
-      const kind=kindFromCard(card);if(!kind)return;
-      card.querySelectorAll('.tc-chip').forEach(chip=>{
-        if(chip.dataset.tcEditable==='1')return;
-        const value=chip.textContent.trim(); if(!value)return;
-        chip.dataset.tcEditable='1';chip.dataset.kind=kind;chip.dataset.value=value;chip.classList.add('tc-chip-editable');
-        const x=document.createElement('button');x.type='button';x.className='tc-chip-remove';x.setAttribute('aria-label',`Remove ${value}`);x.title='Remove';x.textContent='×';chip.appendChild(x);
-      });
-    });
-  }
+  document.addEventListener('click',async e=>{const x=e.target.closest('.tc-chip-remove');if(!x)return;e.preventDefault();e.stopPropagation();const chip=x.closest('.tc-chip'),kind=chip?.dataset.kind,value=chip?.dataset.value;if(!chip||!kind||!value)return;const parent=chip.parentElement,marker=chip.nextSibling,backup=chip.cloneNode(true);chip.classList.add('tc-chip-saving');try{const count=await saveRemoval(kind,value);chip.remove();if(parent&&!parent.querySelector('.tc-chip')){const empty=document.createElement('div');empty.className='tc-chip-empty';empty.textContent='No items selected.';parent.appendChild(empty)}document.querySelectorAll(`[data-tc-count="${kind}"]`).forEach(el=>el.textContent=String(count));toast(`${value} removed from your CV profile.`);window.dispatchEvent(new CustomEvent('thecareers:cv-profile-updated',{detail:{kind,value}}))}catch(err){chip.remove();parent?.insertBefore(backup,marker);toast(err?.message||'Could not save this change.',true)}},true);
 
-  function attachModalAnalysis(){
-    const analysis=document.querySelector('.tc-modal #tcAnalysis');
-    if(!analysis)return;
-    decorateAnalysis(analysis);
-    if(analysis.dataset.tcManagerObserved==='1')return;
-    analysis.dataset.tcManagerObserved='1';
-    analysisObserver?.disconnect();analysisObserver=new MutationObserver(()=>decorateAnalysis(analysis));analysisObserver.observe(analysis,{childList:true,subtree:false});
-  }
+  function chipHtml(kind,items){const values=list(items);return values.length?`<div class="tc-chips">${values.map(v=>`<span class="tc-chip tc-chip-editable" data-tc-editable="1" data-kind="${kind}" data-value="${esc(v)}"><span>${esc(v)}</span><button type="button" class="tc-chip-remove" title="Remove" aria-label="Remove ${esc(v)}">×</button></span>`).join('')}</div>`:'<div class="tc-chip-empty">No items selected.</div>'}
+  async function latestCv(uid){try{const r=await rest(`user_cvs?select=original_name,status,created_at&user_id=eq.${encodeURIComponent(uid)}&order=created_at.desc&limit=1`);return r?.[0]||null}catch{return null}}
+  function pageHtml(a,file=null){const an=a.analysis||{},roles=list(an.inferred_titles),skills=list(an.skills),sectors=list(an.industries);return `<div class="tc-cvm-shell"><div class="tc-cvm-head"><div><div class="tc-cvm-eyebrow">CV PROFILE</div><h1 class="tc-cvm-title">Manage CV</h1><div class="tc-cvm-sub">Control which roles, skills and sectors TheCareers uses for matching. Hover any chip and click × to remove it. Changes are saved immediately.</div></div><div class="tc-cvm-actions"><button class="tc-cvm-btn" id="tcCvmUpload">Upload another CV</button><button class="tc-cvm-btn primary" id="tcCvmDone">Back to Dashboard</button></div></div><div class="tc-cvm-hero"><section class="tc-cvm-panel"><div class="tc-cvm-statusline"><span class="tc-cvm-statusdot"></span>CV personalization active</div><div class="tc-cvm-summary">${esc(an.summary||'Your CV has been analyzed and is actively shaping job matching and search preferences.')}</div><div class="tc-cvm-file">${file?.original_name?`Current CV: <b>${esc(file.original_name)}</b>`:'Your latest uploaded CV is linked to this profile.'}</div></section><section class="tc-cvm-panel"><div class="tc-cvm-stats"><div class="tc-cvm-stat"><b>ATS readiness</b><strong>${Number(an.ats_score||0)}%</strong></div><div class="tc-cvm-stat"><b>Experience</b><strong>${an.years_experience==null?'—':`${an.years_experience}+`}</strong></div><div class="tc-cvm-stat"><b>Target roles</b><strong data-tc-count="role">${roles.length}</strong></div><div class="tc-cvm-stat"><b>Skills</b><strong data-tc-count="skill">${skills.length}</strong></div></div></section></div><div class="tc-cvm-grid"><section class="tc-cvm-card"><div class="tc-cvm-cardhead"><h3>Target roles</h3><span class="tc-cvm-count"><span data-tc-count="role">${roles.length}</span> active</span></div><p class="tc-cvm-help">These job titles have the strongest influence on personalized matching.</p>${chipHtml('role',roles)}</section><section class="tc-cvm-card"><div class="tc-cvm-cardhead"><h3>Search sectors</h3><span class="tc-cvm-count"><span data-tc-count="sector">${sectors.length}</span> active</span></div><p class="tc-cvm-help">Sectors guide where the search engine prioritizes opportunities.</p>${chipHtml('sector',sectors)}</section><section class="tc-cvm-card wide"><div class="tc-cvm-cardhead"><h3>Detected skills</h3><span class="tc-cvm-count"><span data-tc-count="skill">${skills.length}</span> active</span></div><p class="tc-cvm-help">Remove skills that you do not want used as search or CV-match signals.</p>${chipHtml('skill',skills)}</section></div><div class="tc-cvm-note">Removing an item does not delete your original CV file. It removes that signal from your active personalization profile. Uploading a new CV can generate a fresh analysis later.</div></div>`}
 
-  function cloneAccount(){
-    const a=window.TheCareersAccount||{};
-    return {user:a.user||null,analysis:a.analysis||null,preferences:a.preferences||null,profile:a.profile||null};
-  }
+  function bindPage(page){page.querySelector('#tcCvmDone')?.addEventListener('click',()=>close(true));page.querySelector('#tcCvmUpload')?.addEventListener('click',()=>{close(false);setTimeout(()=>window.TheCareersAuth?.cv?.(),40)})}
+  function close(goDashboard=false){document.getElementById('tcCvManagerPage')?.remove();const content=document.querySelector('.main > .content');if(content)content.style.display='';if(goDashboard){document.querySelector('.nav-item[data-page="dashboard"]')?.click();window.scrollTo({top:0,behavior:'smooth'})}}
+  async function open(){document.querySelector('.tc-modal .tc-modal-close')?.click();const content=document.querySelector('.main > .content');if(!content)return;content.style.display='none';document.getElementById('tcCvManagerPage')?.remove();const page=document.createElement('section');page.id='tcCvManagerPage';page.className='tc-cv-manager-page';page.innerHTML=pageHtml(account());content.insertAdjacentElement('beforebegin',page);bindPage(page);window.scrollTo({top:0,behavior:'smooth'});try{await window.TheCareersAuth?.refresh?.();const a=account(),file=a.user?.id?await latestCv(a.user.id):null;if(page.isConnected){page.innerHTML=pageHtml(a,file);bindPage(page)}}catch{}}
 
-  async function persistRemoval(kind,value){
-    const account=cloneAccount();const user=account.user,analysis=account.analysis,prefs=account.preferences,profile=account.profile;
-    if(!user?.id||!analysis)throw new Error('CV profile is not available.');
-    const field=kind==='role'?'inferred_titles':kind==='skill'?'skills':'industries';
-    const oldMain=arr(analysis[field]).slice();const oldKeywords=arr(analysis.search_keywords).slice();
-    const filtered=oldMain.filter(x=>norm(x)!==norm(value));const keywords=oldKeywords.filter(x=>norm(x)!==norm(value));
-    analysis[field]=filtered;analysis.search_keywords=keywords;
-    const analysisFilter=analysis.id?`id=eq.${encodeURIComponent(analysis.id)}`:analysis.cv_id?`cv_id=eq.${encodeURIComponent(analysis.cv_id)}`:`user_id=eq.${encodeURIComponent(user.id)}`;
-    const writes=[rest(`cv_analysis?${analysisFilter}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({[field]:filtered,search_keywords:keywords})})];
-    if(prefs){
-      const pPayload={};
-      if(kind==='role')pPayload.target_titles=arr(prefs.target_titles).filter(x=>norm(x)!==norm(value));
-      if(kind==='skill')pPayload.keywords=arr(prefs.keywords).filter(x=>norm(x)!==norm(value));
-      if(kind==='sector')pPayload.sectors=arr(prefs.sectors).filter(x=>norm(x)!==norm(value));
-      if(kind!=='skill')pPayload.keywords=arr(prefs.keywords).filter(x=>norm(x)!==norm(value));
-      Object.assign(prefs,pPayload);
-      writes.push(rest(`search_preferences?user_id=eq.${encodeURIComponent(user.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(pPayload)}));
-    }
-    if(profile&&(kind==='role'||kind==='sector')){
-      const key=kind==='role'?'target_roles':'preferred_sectors';const next=arr(profile[key]).filter(x=>norm(x)!==norm(value));profile[key]=next;
-      writes.push(rest(`profiles?id=eq.${encodeURIComponent(user.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({[key]:next})}));
-    }
-    const results=await Promise.allSettled(writes);const failed=results.find(r=>r.status==='rejected');
-    if(failed){analysis[field]=oldMain;analysis.search_keywords=oldKeywords;throw failed.reason;}
-    window.TheCareersAccount={...window.TheCareersAccount,analysis,preferences:prefs,profile};
-    return filtered.length;
-  }
-
-  document.addEventListener('click',async e=>{
-    const x=e.target.closest('.tc-chip-remove');if(!x)return;
-    e.preventDefault();e.stopPropagation();
-    const chip=x.closest('.tc-chip');const kind=chip?.dataset.kind;const value=chip?.dataset.value;if(!chip||!kind||!value)return;
-    const parent=chip.parentElement;const marker=chip.nextSibling;const backup=chip.cloneNode(true);chip.classList.add('tc-chip-saving');
-    try{
-      const count=await persistRemoval(kind,value);chip.remove();
-      if(parent&&!parent.querySelector('.tc-chip')){const empty=document.createElement('div');empty.className='tc-chip-empty';empty.textContent='No items selected.';parent.appendChild(empty);}
-      document.querySelectorAll(`[data-tc-count="${kind}"]`).forEach(el=>el.textContent=String(count));
-      toast(`${value} removed from your CV profile.`);
-      window.dispatchEvent(new CustomEvent('thecareers:cv-profile-updated',{detail:{kind,value}}));
-    }catch(err){chip.remove();parent?.insertBefore(backup,marker);toast(err?.message||'Could not save this change.',true);}
-  },true);
-
-  function chips(kind,items){
-    const values=arr(items);if(!values.length)return '<div class="tc-chip-empty">No items selected.</div>';
-    return `<div class="tc-chips">${values.map(v=>`<span class="tc-chip tc-chip-editable" data-tc-editable="1" data-kind="${kind}" data-value="${esc(v)}"><span>${esc(v)}</span><button type="button" class="tc-chip-remove" aria-label="Remove ${esc(v)}" title="Remove">×</button></span>`).join('')}</div>`;
-  }
-
-  async function latestCvName(userId){
-    try{const rows=await rest(`user_cvs?select=original_name,status,created_at&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=1`);return rows?.[0]||null;}catch{return null;}
-  }
-
-  function renderManager(account,file=null){
-    const a=account.analysis||{};const roles=arr(a.inferred_titles),skills=arr(a.skills),sectors=arr(a.industries);
-    return `<div class="tc-cvm-shell">
-      <div class="tc-cvm-head"><div><div class="tc-cvm-eyebrow">CV PROFILE</div><h1 class="tc-cvm-title">Manage CV</h1><div class="tc-cvm-sub">Control which roles, skills and sectors TheCareers uses for matching. Hover any chip and click × to remove it. Changes are saved immediately.</div></div><div class="tc-cvm-actions"><button class="tc-cvm-btn" id="tcCvmUpload">Upload another CV</button><button class="tc-cvm-btn primary" id="tcCvmDone">Back to Dashboard</button></div></div>
-      <div class="tc-cvm-hero"><section class="tc-cvm-panel"><div class="tc-cvm-statusline"><span class="tc-cvm-statusdot"></span>CV personalization active</div><div class="tc-cvm-summary">${esc(a.summary||'Your CV has been analyzed and is actively shaping job matching and search preferences.')}</div><div class="tc-cvm-file" id="tcCvmFile">${file?.original_name?`Current CV: <b>${esc(file.original_name)}</b>`:'Your latest uploaded CV is linked to this profile.'}</div></section><section class="tc-cvm-panel"><div class="tc-cvm-stats"><div class="tc-cvm-stat"><b>ATS readiness</b><strong>${Number(a.ats_score||0)}%</strong></div><div class="tc-cvm-stat"><b>Experience</b><strong>${a.years_experience==null?'—':`${a.years_experience}+`}</strong></div><div class="tc-cvm-stat"><b>Target roles</b><strong data-tc-count="role">${roles.length}</strong></div><div class="tc-cvm-stat"><b>Skills</b><strong data-tc-count="skill">${skills.length}</strong></div></div></section></div>
-      <div class="tc-cvm-grid"><section class="tc-cvm-card"><div class="tc-cvm-cardhead"><h3>Target roles</h3><span class="tc-cvm-count"><span data-tc-count="role">${roles.length}</span> active</span></div><p class="tc-cvm-help">These job titles have the strongest influence on personalized matching.</p>${chips('role',roles)}</section><section class="tc-cvm-card"><div class="tc-cvm-cardhead"><h3>Search sectors</h3><span class="tc-cvm-count"><span data-tc-count="sector">${sectors.length}</span> active</span></div><p class="tc-cvm-help">Sectors guide where the search engine prioritizes opportunities.</p>${chips('sector',sectors)}</section><section class="tc-cvm-card wide"><div class="tc-cvm-cardhead"><h3>Detected skills</h3><span class="tc-cvm-count"><span data-tc-count="skill">${skills.length}</span> active</span></div><p class="tc-cvm-help">Remove skills that you do not want used as search or CV-match signals.</p>${chips('skill',skills)}</section></div>
-      <div class="tc-cvm-note">Removing an item does not delete your original CV file. It only removes that signal from your active TheCareers personalization profile. Uploading a new CV can generate a fresh analysis later.</div>
-    </div>`;
-  }
-
-  function closeManager(goDashboard=false){
-    const page=document.getElementById('tcCvManagerPage');if(page)page.remove();
-    const content=document.querySelector('.main > .content');if(content)content.style.display='';
-    document.documentElement.classList.remove('tc-cv-manager-open');
-    if(goDashboard){const dash=document.querySelector('.nav-item[data-page="dashboard"]');dash?.click();window.scrollTo({top:0,behavior:'smooth'});}
-  }
-
-  async function openManager(){
-    document.querySelector('.tc-modal .tc-modal-close')?.click();
-    const content=document.querySelector('.main > .content');const main=document.querySelector('.main');if(!content||!main)return;
-    content.style.display='none';document.getElementById('tcCvManagerPage')?.remove();
-    const page=document.createElement('section');page.id='tcCvManagerPage';page.className='tc-cv-manager-page';page.innerHTML=renderManager(cloneAccount());
-    content.insertAdjacentElement('beforebegin',page);document.documentElement.classList.add('tc-cv-manager-open');window.scrollTo({top:0,behavior:'smooth'});
-    page.querySelector('#tcCvmDone').addEventListener('click',()=>closeManager(true));
-    page.querySelector('#tcCvmUpload').addEventListener('click',()=>{closeManager(false);setTimeout(()=>window.TheCareersAuth?.cv?.(),40);});
-    try{await window.TheCareersAuth?.refresh?.();const account=cloneAccount();const file=account.user?.id?await latestCvName(account.user.id):null;if(document.getElementById('tcCvManagerPage')){page.innerHTML=renderManager(account,file);page.querySelector('#tcCvmDone').addEventListener('click',()=>closeManager(true));page.querySelector('#tcCvmUpload').addEventListener('click',()=>{closeManager(false);setTimeout(()=>window.TheCareersAuth?.cv?.(),40);});}}catch{}
-  }
-
-  document.addEventListener('click',e=>{
-    const nav=e.target.closest('.nav-item[data-page]');if(!nav||!document.getElementById('tcCvManagerPage'))return;
-    if(nav.dataset.page!=='cv')closeManager(false);
-  },true);
-
-  const bodyObserver=new MutationObserver(()=>queueMicrotask(attachModalAnalysis));
-  const start=()=>{attachModalAnalysis();bodyObserver.observe(document.body,{childList:true,subtree:false});};
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
-
-  window.TheCareersCVManager={open:openManager,close:closeManager,decorate:decorateAnalysis};
+  document.addEventListener('click',e=>{const nav=e.target.closest('.nav-item[data-page]');if(nav&&document.getElementById('tcCvManagerPage')&&nav.dataset.page!=='cv')close(false)},true);
+  const bodyObserver=new MutationObserver(()=>queueMicrotask(watchModal));const start=()=>{watchModal();bodyObserver.observe(document.body,{childList:true,subtree:false})};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+  window.TheCareersCVManager={open,close,decorate};
 })();
