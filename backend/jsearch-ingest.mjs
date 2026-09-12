@@ -108,6 +108,16 @@ function mapJob(row) {
   };
 }
 
+function extractRows(payload) {
+  // JSearch v2 returns { status, data: { jobs: [...] } }.
+  // Keep the legacy array fallback so an upstream response-shape change does
+  // not silently turn a successful request into an empty ingestion run.
+  if (Array.isArray(payload?.data?.jobs)) return payload.data.jobs;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.jobs)) return payload.jobs;
+  return [];
+}
+
 async function main() {
   if (!API_KEY) throw new Error('JSEARCH_API_KEY is missing');
   await refreshOidcToken();
@@ -131,7 +141,7 @@ async function main() {
     throw new Error(`JSearch API failed (${res.status}) ${clean(payload?.message || payload?.error || text).slice(0, 250)}`);
   }
 
-  const rows = Array.isArray(payload?.data) ? payload.data : [];
+  const rows = extractRows(payload);
   const normalized = rows
     .map(mapJob)
     .map(raw => {
@@ -154,7 +164,8 @@ async function main() {
 
   const unique = [...new Map(normalized.map(job => [job.fingerprint, job])).values()];
   if (!unique.length) {
-    console.log(`JSEARCH_API_OK query=${JSON.stringify(query)} fetched=${rows.length} submitted=0`);
+    const dataKeys = payload?.data && typeof payload.data === 'object' ? Object.keys(payload.data).join(',') : typeof payload?.data;
+    console.log(`JSEARCH_API_OK query=${JSON.stringify(query)} fetched=${rows.length} submitted=0 data_keys=${JSON.stringify(dataKeys)}`);
     return;
   }
 
