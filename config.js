@@ -95,6 +95,7 @@ window.THECAREERS_CONFIG = {
   });
 
   const applyGuest=()=>{
+    document.querySelector('.copilot-card')?.remove();
     const name=document.querySelector('.profile-name'),role=document.querySelector('.profile-role'),avatar=document.querySelector('.profile .avatar');
     if(name)name.textContent='Guest';if(role)role.textContent='Pre-launch access';if(avatar)avatar.textContent='TC';
     const foot=document.querySelector('.sidebar-foot');if(foot){foot.innerHTML=`TheCareers v2.1.0<br>© 2026 TheCareers<br><span style="display:inline-block;margin-top:6px"><a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a> · <a href="./disclaimer.html">Disclaimer</a></span><br><a href="mailto:support@thecareers.net">support@thecareers.net</a>`;foot.querySelectorAll('a').forEach(a=>{a.style.color='inherit';a.style.textDecoration='underline';a.style.textUnderlineOffset='2px';});}
