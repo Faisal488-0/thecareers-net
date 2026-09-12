@@ -68,10 +68,10 @@ window.THECAREERS_CONFIG = {
     ['./assets/utility-panels.js?v=20260912a','tc-utility-panels'],
     ['./assets/site-telemetry.js?v=20260911c','tc-site-telemetry'],
     ['./assets/ui-copy-cleanup.js?v=20260911d','tc-ui-copy-cleanup'],
-    ['./assets/dashboard-layout-tuning.js?v=20260912b','tc-dashboard-layout-tuning'],
+    ['./assets/dashboard-layout-tuning.js?v=20260912e','tc-dashboard-layout-tuning'],
     ['./assets/topbar-visibility-cleanup.js?v=20260911a','tc-topbar-visibility-cleanup'],
     ['./assets/country-filter.js?v=20260912d','tc-country-filter'],
-    ['./assets/jobs-pagination.js?v=20260912d','tc-jobs-pagination']
+    ['./assets/jobs-pagination.js?v=20260912e','tc-jobs-pagination']
   ];
   scripts.forEach(([src,key])=>{
     if(document.querySelector(`script[data-${key}]`))return;
