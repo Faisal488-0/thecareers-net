@@ -1,6 +1,7 @@
-/* Visual-only topbar cleanup for TheCareers.
-   Hides the descriptive left banner and system/search status chips.
-   Search Now, profile controls and all backend behavior remain unchanged. */
+/* Visual cleanup for TheCareers.
+   - Hides the descriptive topbar banner and system/search status chips.
+   - Removes redundant sidebar entries: Jobs, Search Engine, Companies.
+   Dashboard, CV Center, Settings, Search Now, profile controls and backend behavior remain unchanged. */
 (() => {
   'use strict';
   if (window.__TC_TOPBAR_VISIBILITY_CLEANUP__) return;
@@ -23,4 +24,18 @@
     }
   `;
   document.head.appendChild(style);
+
+  const removeRedundantNav = () => {
+    document.querySelectorAll('.nav-item[data-page="jobs"], .nav-item[data-page="search"], .nav-item[data-page="companies"]').forEach(el => el.remove());
+  };
+
+  removeRedundantNav();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', removeRedundantNav, { once: true });
+  }
+
+  const nav = document.querySelector('.nav');
+  if (nav) {
+    new MutationObserver(removeRedundantNav).observe(nav, { childList: true, subtree: true });
+  }
 })();
