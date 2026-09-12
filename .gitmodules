@@ -1,3 +1,6 @@
 [submodule "tools/figranium"]
 	path = tools/figranium
 	url = https://github.com/figranium/figranium.git
+[submodule "tools/dittofeed"]
+	path = tools/dittofeed
+	url = https://github.com/dittofeed/dittofeed.git
