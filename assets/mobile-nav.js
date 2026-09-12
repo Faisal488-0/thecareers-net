@@ -2,6 +2,59 @@
    Keeps the desktop sidebar unchanged and restores navigation on <= 760px screens. */
 (() => {
   const init = () => {
+    // Critical: the dedicated mobile responsive stylesheet existed in the repo
+    // but was not wired into the live page. Load it here because mobile-nav.js
+    // is already part of the production boot path.
+    if (!document.querySelector('link[data-tc-mobile-responsive-fix]')) {
+      const responsive = document.createElement('link');
+      responsive.rel = 'stylesheet';
+      responsive.dataset.tcMobileResponsiveFix = '1';
+      responsive.href = new URL('./mobile-responsive-fix.css?v=20260912c', document.currentScript?.src || location.href).href;
+      document.head.appendChild(responsive);
+    }
+
+    // Emergency scroll ownership rule for touch devices. amCharts deliberately
+    // captures drag gestures for globe rotation on desktop; on phones we give
+    // those gestures back to the browser so a finger drag always scrolls page.
+    if (!document.getElementById('tc-mobile-scroll-ownership')) {
+      const scrollStyle = document.createElement('style');
+      scrollStyle.id = 'tc-mobile-scroll-ownership';
+      scrollStyle.textContent = `
+        @media (max-width:760px), (pointer:coarse) {
+          html, body {
+            overflow-x:hidden !important;
+            overflow-y:auto !important;
+            height:auto !important;
+            min-height:100% !important;
+            touch-action:pan-y !important;
+            overscroll-behavior-y:auto !important;
+            -webkit-overflow-scrolling:touch !important;
+          }
+          body:not(.tc-mobile-nav-open),
+          body:not(.tc-mobile-nav-open) .app,
+          body:not(.tc-mobile-nav-open) .main,
+          body:not(.tc-mobile-nav-open) .content {
+            overflow-y:visible !important;
+            height:auto !important;
+            position:static !important;
+            touch-action:pan-y !important;
+          }
+          #thecareers-globe-stage,
+          .core-visual.thecareers-globe-zone {
+            touch-action:pan-y !important;
+          }
+          /* Disable only touch interaction with the amCharts rendering layer.
+             Animation remains visible; desktop mouse rotate/zoom is unaffected. */
+          #thecareers-ai-globe,
+          #thecareers-ai-globe * {
+            pointer-events:none !important;
+            touch-action:pan-y !important;
+          }
+        }
+      `;
+      document.head.appendChild(scrollStyle);
+    }
+
     const sidebar = document.querySelector('.sidebar');
     const topbar = document.querySelector('.topbar');
     if (!sidebar || !topbar || document.getElementById('tc-mobile-menu-btn')) return;
@@ -14,7 +67,7 @@
       .tc-mobile-sidebar-close { display: none; }
 
       @media (max-width: 760px) {
-        body.tc-mobile-nav-open { overflow: hidden; }
+        body.tc-mobile-nav-open { overflow: hidden !important; }
 
         .tc-mobile-menu-btn {
           display: inline-flex;
@@ -152,6 +205,9 @@
       if (next) setTimeout(() => closeBtn.focus({ preventScroll: true }), 0);
     };
 
+    // Never keep a stale scroll-lock after reload/navigation.
+    document.body.classList.remove('tc-mobile-nav-open');
+
     menuBtn.addEventListener('click', () => setOpen(!document.body.classList.contains('tc-mobile-nav-open')));
     closeBtn.addEventListener('click', () => setOpen(false));
     overlay.addEventListener('click', () => setOpen(false));
@@ -167,6 +223,7 @@
     window.addEventListener('resize', () => {
       if (window.innerWidth > 760) setOpen(false);
     });
+    window.addEventListener('pageshow', () => setOpen(false));
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
