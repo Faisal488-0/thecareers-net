@@ -39,11 +39,12 @@ window.THECAREERS_CONFIG = {
     };
   }
 
-  // Keep default opportunity view on All Jobs + Newest.
+  // Keep default opportunity view on All Jobs + Newest First.
   const applyFreshestDefault = () => {
     const all=document.querySelector('.tab[data-tab="all"]'), sort=document.querySelector('.select-like');
     if(all&&!all.classList.contains('active'))all.click();
     if(sort&&!/Sort by:\s*Newest/i.test(sort.textContent||'')){for(let i=0;i<3&&!/Sort by:\s*Newest/i.test(sort.textContent||'');i++)sort.click();}
+    if(sort&&/Sort by:\s*Newest/i.test(sort.textContent||''))sort.textContent='Sort by: Newest First';
   };
   const bootFresh=()=>{let n=0;const t=setInterval(()=>{applyFreshestDefault();n++;if(n>=20||(document.querySelector('.tab[data-tab="all"]')?.classList.contains('active')&&/Sort by:\s*Newest/i.test(document.querySelector('.select-like')?.textContent||'')))clearInterval(t);},150);};
   if(document.readyState==='complete')bootFresh();else window.addEventListener('load',bootFresh,{once:true});
@@ -69,7 +70,8 @@ window.THECAREERS_CONFIG = {
     ['./assets/ui-copy-cleanup.js?v=20260911d','tc-ui-copy-cleanup'],
     ['./assets/dashboard-layout-tuning.js?v=20260912b','tc-dashboard-layout-tuning'],
     ['./assets/topbar-visibility-cleanup.js?v=20260911a','tc-topbar-visibility-cleanup'],
-    ['./assets/jobs-pagination.js?v=20260911a','tc-jobs-pagination']
+    ['./assets/country-filter.js?v=20260912d','tc-country-filter'],
+    ['./assets/jobs-pagination.js?v=20260912d','tc-jobs-pagination']
   ];
   scripts.forEach(([src,key])=>{
     if(document.querySelector(`script[data-${key}]`))return;
