@@ -19,7 +19,6 @@ window.THECAREERS_CONFIG = {
   css('./assets/ui-ux-pro-max.css?v=20260912a', 'tc-uiux-pro-max');
   css('./assets/mobile-responsive-fix.css?v=20260912c', 'tc-mobile-responsive-fix');
 
-  // Interaction stability guard.
   if (!window.__TC_JOBLIST_MUTATION_STABILITY__) {
     window.__TC_JOBLIST_MUTATION_STABILITY__ = true;
     const NativeMutationObserver = window.MutationObserver;
@@ -35,7 +34,6 @@ window.THECAREERS_CONFIG = {
     }
   }
 
-  // Always request the freshest active jobs first, but keep browser workload bounded.
   if (!window.__THECAREERS_FRESH_JOBS_FETCH__) {
     window.__THECAREERS_FRESH_JOBS_FETCH__ = true;
     const nativeFetch = window.fetch.bind(window);
@@ -55,7 +53,6 @@ window.THECAREERS_CONFIG = {
     };
   }
 
-  // Keep default opportunity view on All Jobs + Newest First without repeatedly hammering the list.
   const applyFreshestDefault = () => {
     const all=document.querySelector('.tab[data-tab="all"]'), sort=document.querySelector('.select-like');
     if(all&&!all.classList.contains('active'))all.click();
@@ -65,7 +62,6 @@ window.THECAREERS_CONFIG = {
   const bootFresh=()=>{let n=0;const t=setInterval(()=>{applyFreshestDefault();n++;if(n>=8||(document.querySelector('.tab[data-tab="all"]')?.classList.contains('active')&&/Sort by:\s*Newest/i.test(document.querySelector('.select-like')?.textContent||'')))clearInterval(t);},250);};
   if(document.readyState==='complete')bootFresh();else window.addEventListener('load',bootFresh,{once:true});
 
-  // Job title remains the primary field in opportunity rows.
   if(!document.getElementById('thecareers-job-title-priority')){
     const s=document.createElement('style');s.id='thecareers-job-title-priority';s.textContent=`
       .job-main .title{font-size:15.5px!important;line-height:1.28!important;font-weight:800!important;letter-spacing:-.01em!important;color:#0b0c0e!important;margin-bottom:3px!important}
@@ -74,7 +70,6 @@ window.THECAREERS_CONFIG = {
     `;document.head.appendChild(s);
   }
 
-  // Load enhancement modules in deterministic order.
   const scripts=[
     ['./assets/network-enhancement.js?v=20260909c','tc-network-enhancement'],
     ['./assets/network-desktop-flow.js?v=20260911a','tc-network-desktop-flow'],
@@ -82,7 +77,7 @@ window.THECAREERS_CONFIG = {
     ['./assets/auth-redirect-fix.js?v=20260912a','tc-auth-redirect-fix'],
     ['./assets/utility-panels.js?v=20260912a','tc-utility-panels'],
     ['./assets/cv-upload-fast.js?v=20260912a','tc-cv-upload-fast'],
-    ['./assets/cv-profile-manager.js?v=20260912a','tc-cv-profile-manager'],
+    ['./assets/cv-profile-manager.js?v=20260912b','tc-cv-profile-manager'],
     ['./assets/cv-done-button.js?v=20260912b','tc-cv-done-button'],
     ['./assets/site-telemetry.js?v=20260911c','tc-site-telemetry'],
     ['./assets/ui-copy-cleanup.js?v=20260911d','tc-ui-copy-cleanup'],
@@ -98,7 +93,6 @@ window.THECAREERS_CONFIG = {
     s.addEventListener('error',()=>console.error(`[TheCareers] failed to load ${src}`));document.head.appendChild(s);
   });
 
-  // Guest identity and legal links; authenticated identity replaces it after load.
   const applyGuest=()=>{
     const name=document.querySelector('.profile-name'),role=document.querySelector('.profile-role'),avatar=document.querySelector('.profile .avatar');
     if(name)name.textContent='Guest';if(role)role.textContent='Pre-launch access';if(avatar)avatar.textContent='TC';
