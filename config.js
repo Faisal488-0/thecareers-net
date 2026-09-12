@@ -89,6 +89,7 @@ window.THECAREERS_CONFIG = {
     ['./assets/auth-redirect-fix.js?v=20260912a','tc-auth-redirect-fix'],
     ['./assets/utility-panels.js?v=20260912a','tc-utility-panels'],
     ['./assets/cv-upload-fast.js?v=20260912a','tc-cv-upload-fast'],
+    ['./assets/cv-done-button.js?v=20260912a','tc-cv-done-button'],
     ['./assets/site-telemetry.js?v=20260911c','tc-site-telemetry'],
     ['./assets/ui-copy-cleanup.js?v=20260911d','tc-ui-copy-cleanup'],
     ['./assets/dashboard-layout-tuning.js?v=20260912e','tc-dashboard-layout-tuning'],
