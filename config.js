@@ -19,7 +19,28 @@ window.THECAREERS_CONFIG = {
   css('./assets/ui-ux-pro-max.css?v=20260912a', 'tc-uiux-pro-max');
   css('./assets/mobile-responsive-fix.css?v=20260912c', 'tc-mobile-responsive-fix');
 
-  // Always request the freshest active jobs first.
+  // Interaction stability guard.
+  // The CV personalization module observes #jobList and also updates text inside
+  // that same subtree. Watching nested mutations can therefore create a feedback
+  // loop after a CV profile becomes active, starving the main thread and making
+  // buttons feel frozen. Direct row additions/removals are all that observer needs.
+  if (!window.__TC_JOBLIST_MUTATION_STABILITY__) {
+    window.__TC_JOBLIST_MUTATION_STABILITY__ = true;
+    const NativeMutationObserver = window.MutationObserver;
+    if (NativeMutationObserver) {
+      window.MutationObserver = class TheCareersStableMutationObserver extends NativeMutationObserver {
+        observe(target, options = {}) {
+          if (target?.id === 'jobList' && options?.childList && options?.subtree) {
+            return super.observe(target, { ...options, subtree: false, characterData: false });
+          }
+          return super.observe(target, options);
+        }
+      };
+    }
+  }
+
+  // Always request the freshest active jobs first, but keep the browser workload
+  // bounded. The exact total is fetched separately by the pagination/count layer.
   if (!window.__THECAREERS_FRESH_JOBS_FETCH__) {
     window.__THECAREERS_FRESH_JOBS_FETCH__ = true;
     const nativeFetch = window.fetch.bind(window);
@@ -30,7 +51,7 @@ window.THECAREERS_CONFIG = {
           const u = new URL(input, location.href);
           if (u.host === host && u.pathname === '/rest/v1/jobs' && u.searchParams.get('status') === 'eq.active') {
             u.searchParams.set('order','found_at.desc.nullslast,published_at.desc.nullslast,score.desc.nullslast');
-            const lim=Number(u.searchParams.get('limit')||0); if(!lim||lim<1200)u.searchParams.set('limit','1200');
+            const lim=Number(u.searchParams.get('limit')||0); if(!lim||lim<500)u.searchParams.set('limit','500');
             input=u.href;
           }
         }
@@ -39,14 +60,15 @@ window.THECAREERS_CONFIG = {
     };
   }
 
-  // Keep default opportunity view on All Jobs + Newest First.
+  // Keep default opportunity view on All Jobs + Newest First without repeatedly
+  // hammering the live list during startup.
   const applyFreshestDefault = () => {
     const all=document.querySelector('.tab[data-tab="all"]'), sort=document.querySelector('.select-like');
     if(all&&!all.classList.contains('active'))all.click();
     if(sort&&!/Sort by:\s*Newest/i.test(sort.textContent||'')){for(let i=0;i<3&&!/Sort by:\s*Newest/i.test(sort.textContent||'');i++)sort.click();}
     if(sort&&/Sort by:\s*Newest/i.test(sort.textContent||''))sort.textContent='Sort by: Newest First';
   };
-  const bootFresh=()=>{let n=0;const t=setInterval(()=>{applyFreshestDefault();n++;if(n>=20||(document.querySelector('.tab[data-tab="all"]')?.classList.contains('active')&&/Sort by:\s*Newest/i.test(document.querySelector('.select-like')?.textContent||'')))clearInterval(t);},150);};
+  const bootFresh=()=>{let n=0;const t=setInterval(()=>{applyFreshestDefault();n++;if(n>=8||(document.querySelector('.tab[data-tab="all"]')?.classList.contains('active')&&/Sort by:\s*Newest/i.test(document.querySelector('.select-like')?.textContent||'')))clearInterval(t);},250);};
   if(document.readyState==='complete')bootFresh();else window.addEventListener('load',bootFresh,{once:true});
 
   // Job title remains the primary field in opportunity rows.
