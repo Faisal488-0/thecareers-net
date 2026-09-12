@@ -5,7 +5,7 @@ import { scoreJob } from './skills/relevance-scorer.mjs';
 const BRIDGE_URL = process.env.SUPABASE_GITHUB_BRIDGE_URL || 'https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge';
 const OIDC_AUDIENCE = 'thecareers-supabase';
 const API_KEY = String(process.env.JOOBLE_KW_API_KEY || '').trim();
-const KEYWORDS = String(process.env.JOOBLE_KEYWORDS || 'jobs').trim();
+const KEYWORDS_OVERRIDE = String(process.env.JOOBLE_KEYWORDS || '').trim();
 const LOCATION = String(process.env.JOOBLE_LOCATION || 'Kuwait').trim();
 const RESULT_ON_PAGE = Math.max(10, Math.min(Number(process.env.JOOBLE_RESULTS || 50), 100));
 let oidcToken = process.env.GITHUB_OIDC_TOKEN || '';
@@ -14,6 +14,23 @@ function clean(value) { return String(value || '').replace(/\s+/g, ' ').trim(); 
 function fingerprint(job) {
   const raw = [job.title, job.company, job.location, job.url].map(v => clean(v).toLowerCase()).join('|');
   return crypto.createHash('sha256').update(raw).digest('hex');
+}
+
+function defaultKeywords() {
+  if (KEYWORDS_OVERRIDE) return KEYWORDS_OVERRIDE;
+  const groups = [
+    'engineer technician oil gas',
+    'teacher school education',
+    'HR administrator operations',
+    'accountant finance',
+    'sales marketing business development',
+    'IT developer support',
+    'healthcare nurse doctor',
+    'driver operator logistics'
+  ];
+  const now = new Date();
+  const day = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 86400000);
+  return groups[day % groups.length];
 }
 
 async function refreshOidcToken() {
@@ -67,8 +84,7 @@ function mapJob(row) {
     url: clean(row?.link),
     source_name: 'Jooble Kuwait API',
     score: 0,
-    verified: false,
-    salary_text: clean(row?.salary)
+    verified: false
   };
 }
 
@@ -76,13 +92,15 @@ async function main() {
   if (!API_KEY) throw new Error('JOOBLE_KW_API_KEY is missing');
   await refreshOidcToken();
 
+  const keywords = defaultKeywords();
   const endpoint = `https://kw.jooble.org/api/${encodeURIComponent(API_KEY)}`;
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', accept: 'application/json' },
     body: JSON.stringify({
-      keywords: KEYWORDS,
+      keywords,
       location: LOCATION,
+      radius: '80',
       page: 1,
       ResultOnPage: RESULT_ON_PAGE,
       SearchMode: 0,
@@ -116,14 +134,14 @@ async function main() {
 
   const unique = [...new Map(normalized.map(job => [job.fingerprint, job])).values()];
   if (!unique.length) {
-    console.log(`JOOBLE_KW_API_OK fetched=${rows.length} submitted=0`);
+    console.log(`JOOBLE_KW_API_OK keywords=${JSON.stringify(keywords)} fetched=${rows.length} submitted=0`);
     return;
   }
 
   const result = await bridge('upsert_jobs', { rows: unique });
   const stored = Number(result?.count ?? unique.length);
   const skipped = Number(result?.skipped_invalid || 0);
-  console.log(`JOOBLE_KW_API_OK fetched=${rows.length} submitted=${unique.length} stored=${stored} skipped_invalid=${skipped}`);
+  console.log(`JOOBLE_KW_API_OK keywords=${JSON.stringify(keywords)} fetched=${rows.length} submitted=${unique.length} stored=${stored} skipped_invalid=${skipped}`);
 }
 
 main().catch(error => {
