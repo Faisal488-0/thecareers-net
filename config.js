@@ -83,7 +83,7 @@ window.THECAREERS_CONFIG = {
     ['./assets/ui-copy-cleanup.js?v=20260911d','tc-ui-copy-cleanup'],
     ['./assets/dashboard-layout-tuning.js?v=20260912e','tc-dashboard-layout-tuning'],
     ['./assets/topbar-visibility-cleanup.js?v=20260912b','tc-topbar-visibility-cleanup'],
-    ['./assets/country-filter.js?v=20260912d','tc-country-filter'],
+    ['./assets/country-filter.js?v=20260912e','tc-country-filter'],
     ['./assets/jobs-pagination.js?v=20260912e','tc-jobs-pagination'],
     ['./assets/job-card-desktop-layout.js?v=20260912a','tc-job-card-desktop-layout']
   ];
