@@ -31,7 +31,6 @@ jobs:
         with:
           node-version: '24'
       - run: npm install --no-audit --no-fund
-      - run: npx playwright install chromium
 
       - name: Check configured job API secrets
         shell: bash
@@ -63,6 +62,9 @@ jobs:
           SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
           ARBEITNOW_PAGES: '1'
         run: node backend/arbeitnow-ingest.mjs
+
+      - name: Install Chromium for browser sources
+        run: npx playwright install chromium
 
       - name: Run bounded 8-minute scrape cycle
         shell: bash
