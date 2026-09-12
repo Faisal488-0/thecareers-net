@@ -15,6 +15,17 @@ window.THECAREERS_CONFIG = {
   document.head.appendChild(link);
 })();
 
+// Production mobile responsive/scroll layer. This file existed previously but
+// was not actually loaded by the live page, so the intended touch fixes never ran.
+(() => {
+  if (document.querySelector('link[data-tc-mobile-responsive-fix]')) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.dataset.tcMobileResponsiveFix = '1';
+  link.href = new URL('./assets/mobile-responsive-fix.css?v=20260912c', document.currentScript?.src || location.href).href;
+  document.head.appendChild(link);
+})();
+
 // Live jobs freshness guard. The dashboard controller still performs all
 // rendering/scoring locally, but its Supabase jobs request is rewritten to load
 // the freshest active records first instead of an old score-heavy snapshot.
@@ -94,13 +105,12 @@ window.THECAREERS_CONFIG = {
   document.head.appendChild(s);
 })();
 
-// Mobile navigation drawer. The original stylesheet hides .sidebar below 760px;
-// this isolated enhancement restores it as an accessible off-canvas menu.
+// Mobile navigation drawer + touch-scroll ownership fix.
 (() => {
   if (document.querySelector('script[data-tc-mobile-nav]')) return;
   const s = document.createElement('script');
   s.dataset.tcMobileNav = '1';
-  s.src = new URL('./assets/mobile-nav.js?v=20260910a', document.currentScript?.src || location.href).href;
+  s.src = new URL('./assets/mobile-nav.js?v=20260912c', document.currentScript?.src || location.href).href;
   s.defer = true;
   s.addEventListener('error', () => console.error('[TheCareers] mobile navigation failed to load'));
   document.head.appendChild(s);
