@@ -20,10 +20,6 @@ window.THECAREERS_CONFIG = {
   css('./assets/mobile-responsive-fix.css?v=20260912c', 'tc-mobile-responsive-fix');
 
   // Interaction stability guard.
-  // The CV personalization module observes #jobList and also updates text inside
-  // that same subtree. Watching nested mutations can therefore create a feedback
-  // loop after a CV profile becomes active, starving the main thread and making
-  // buttons feel frozen. Direct row additions/removals are all that observer needs.
   if (!window.__TC_JOBLIST_MUTATION_STABILITY__) {
     window.__TC_JOBLIST_MUTATION_STABILITY__ = true;
     const NativeMutationObserver = window.MutationObserver;
@@ -39,8 +35,7 @@ window.THECAREERS_CONFIG = {
     }
   }
 
-  // Always request the freshest active jobs first, but keep the browser workload
-  // bounded. The exact total is fetched separately by the pagination/count layer.
+  // Always request the freshest active jobs first, but keep browser workload bounded.
   if (!window.__THECAREERS_FRESH_JOBS_FETCH__) {
     window.__THECAREERS_FRESH_JOBS_FETCH__ = true;
     const nativeFetch = window.fetch.bind(window);
@@ -60,8 +55,7 @@ window.THECAREERS_CONFIG = {
     };
   }
 
-  // Keep default opportunity view on All Jobs + Newest First without repeatedly
-  // hammering the live list during startup.
+  // Keep default opportunity view on All Jobs + Newest First without repeatedly hammering the list.
   const applyFreshestDefault = () => {
     const all=document.querySelector('.tab[data-tab="all"]'), sort=document.querySelector('.select-like');
     if(all&&!all.classList.contains('active'))all.click();
@@ -80,8 +74,7 @@ window.THECAREERS_CONFIG = {
     `;document.head.appendChild(s);
   }
 
-  // Load enhancement modules in deterministic order. Auth redirect runs before
-  // the account/CV module so confirmation tokens are captured before its boot.
+  // Load enhancement modules in deterministic order.
   const scripts=[
     ['./assets/network-enhancement.js?v=20260909c','tc-network-enhancement'],
     ['./assets/network-desktop-flow.js?v=20260911a','tc-network-desktop-flow'],
@@ -89,7 +82,8 @@ window.THECAREERS_CONFIG = {
     ['./assets/auth-redirect-fix.js?v=20260912a','tc-auth-redirect-fix'],
     ['./assets/utility-panels.js?v=20260912a','tc-utility-panels'],
     ['./assets/cv-upload-fast.js?v=20260912a','tc-cv-upload-fast'],
-    ['./assets/cv-done-button.js?v=20260912a','tc-cv-done-button'],
+    ['./assets/cv-profile-manager.js?v=20260912a','tc-cv-profile-manager'],
+    ['./assets/cv-done-button.js?v=20260912b','tc-cv-done-button'],
     ['./assets/site-telemetry.js?v=20260911c','tc-site-telemetry'],
     ['./assets/ui-copy-cleanup.js?v=20260911d','tc-ui-copy-cleanup'],
     ['./assets/dashboard-layout-tuning.js?v=20260912e','tc-dashboard-layout-tuning'],
