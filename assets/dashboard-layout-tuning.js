@@ -1,7 +1,8 @@
 /* TheCareers dashboard visual tuning
    - Remove redundant Jobs by Sector panel (sector categories are already represented near the globe)
    - Reduce the four dashboard metric cards (Jobs Found / High Match / Sources Online / Applications) by ~40%
-   - Widen Top Opportunities to use the freed space and scale its controls/text by ~10%
+   - Widen Top Opportunities to use the freed space
+   - Make opportunity cards wider/shorter and increase card text ~15% for readability
    - Preserve globe/category layout and backend/search behavior
 */
 (() => {
@@ -44,21 +45,88 @@
     .row-opps .tabs { gap: 8px !important; }
     .row-opps .tab, .row-opps .select-like, .row-opps .filter-btn { font-size: 12px !important; min-height: 36px !important; padding: 8px 14px !important; border-radius: 11px !important; }
 
-    .row-opps .job-main .title { font-size: 17px !important; line-height: 1.28 !important; }
-    .row-opps .job-main .company { font-size: 12.7px !important; }
-    .row-opps .job-meta, .row-opps .job-meta span { font-size: 11px !important; }
-    .row-opps .job-row { min-height: 72px !important; padding-left: 16px !important; padding-right: 16px !important; }
-    .row-opps .job-score .pct, .row-opps .job-score .score, .row-opps .relevance { font-size: 11px !important; }
-    .row-opps .job-actions button, .row-opps .job-action, .row-opps .save-btn, .row-opps .open-btn { transform: scale(1.1); transform-origin: center; }
+    /* Desktop opportunity cards: horizontal rectangles, not tall stacked cards. */
+    .row-opps .job-row {
+      min-height: 58px !important;
+      padding: 7px 14px !important;
+      display: grid !important;
+      grid-template-columns: 42px minmax(0,1fr) 66px 104px 66px !important;
+      column-gap: 12px !important;
+      align-items: center !important;
+      border-radius: 10px !important;
+    }
+    .row-opps .job-logo {
+      width: 38px !important;
+      height: 38px !important;
+      min-width: 38px !important;
+      border-radius: 9px !important;
+      font-size: 12px !important;
+    }
+    .row-opps .job-main {
+      min-width: 0 !important;
+      display: grid !important;
+      grid-template-columns: minmax(120px,auto) minmax(0,1fr) !important;
+      grid-template-areas: 'title title' 'company meta' !important;
+      column-gap: 14px !important;
+      row-gap: 2px !important;
+      align-items: center !important;
+    }
+    .row-opps .job-main .title {
+      grid-area: title !important;
+      font-size: 19.55px !important;
+      line-height: 1.08 !important;
+      font-weight: 800 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      margin: 0 !important;
+    }
+    .row-opps .job-main .company {
+      grid-area: company !important;
+      font-size: 14.6px !important;
+      line-height: 1.1 !important;
+      margin: 0 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    .row-opps .job-meta {
+      grid-area: meta !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+      min-width: 0 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+    }
+    .row-opps .job-meta, .row-opps .job-meta span { font-size: 12.65px !important; line-height: 1.08 !important; }
+    .row-opps .job-score .pct, .row-opps .job-score .score, .row-opps .relevance { font-size: 12.65px !important; line-height: 1.05 !important; }
+    .row-opps .job-score .lbl { font-size: 9.8px !important; }
+    .row-opps .badge { font-size: 10.5px !important; line-height: 1 !important; padding-top: 5px !important; padding-bottom: 5px !important; }
+    .row-opps .job-time { font-size: 9.8px !important; line-height: 1.05 !important; }
+    .row-opps .job-actions { gap: 7px !important; }
+    .row-opps .job-actions .icon-btn,
+    .row-opps .job-actions button,
+    .row-opps .job-action,
+    .row-opps .save-btn,
+    .row-opps .open-btn {
+      width: 32px !important;
+      height: 32px !important;
+      min-width: 32px !important;
+      font-size: 15px !important;
+      transform: none !important;
+    }
 
     @media (min-width: 1000px) {
       .stat-row { width: 72% !important; max-width: 980px !important; margin-left: auto !important; margin-right: auto !important; }
       .row-opps .opps-toolbar { display: flex !important; justify-content: space-between !important; align-items: center !important; width: 100% !important; }
       .row-opps .opps-actions { margin-left: auto !important; }
+      .row-opps #jobList { display: grid !important; gap: 5px !important; }
     }
 
     @media (min-width: 1500px) {
       .stat-row { width: 68% !important; max-width: 1040px !important; }
+      .row-opps .job-row { grid-template-columns: 44px minmax(0,1fr) 72px 112px 72px !important; }
     }
 
     @media (max-width: 999px) {
@@ -66,7 +134,13 @@
       .stat-row .stat-card { padding: 9px 10px 8px !important; }
       .row-opps .panel-title { font-size: 15px !important; }
       .row-opps .tab, .row-opps .select-like, .row-opps .filter-btn { font-size: 11px !important; min-height: 34px !important; padding: 7px 11px !important; }
-      .row-opps .job-main .title { font-size: 15.5px !important; }
+      .row-opps .job-row { min-height: 64px !important; padding: 8px 10px !important; grid-template-columns: 40px minmax(0,1fr) 58px 62px !important; column-gap: 8px !important; }
+      .row-opps .job-row > div:nth-child(4) { display: none !important; }
+      .row-opps .job-main { display: block !important; }
+      .row-opps .job-main .title { font-size: 17px !important; line-height: 1.12 !important; white-space: normal !important; display: -webkit-box !important; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      .row-opps .job-main .company { font-size: 13px !important; margin-top: 2px !important; }
+      .row-opps .job-meta { margin-top: 3px !important; gap: 6px !important; overflow-x: hidden !important; }
+      .row-opps .job-meta, .row-opps .job-meta span { font-size: 10.5px !important; }
     }
   `;
   document.head.appendChild(style);
