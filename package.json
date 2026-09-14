@@ -11,11 +11,11 @@
     "cheerio": "^1",
     "crawlee": "^3",
     "fast-xml-parser": "^5",
-    "normalize-url": "^8",
-    "p-limit": "^6",
+    "normalize-url": "^9",
+    "p-limit": "^7",
     "playwright": "^1",
     "robots-parser": "^3.0.1",
     "rss-parser": "^3.13.0",
-    "zod": "^3"
+    "zod": "^4"
   }
 }
