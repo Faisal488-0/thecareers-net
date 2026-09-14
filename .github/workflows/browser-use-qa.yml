@@ -7,22 +7,37 @@ on:
         description: Public URL to inspect with a local Chromium browser
         required: true
         default: https://thecareers.net/
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'config.js'
+      - 'assets/**'
+      - 'qa/free-browser-qa.cjs'
   schedule:
     - cron: '17 1 * * *'
 
 permissions:
   contents: read
 
+concurrency:
+  group: thecareers-browser-qa
+  cancel-in-progress: true
+
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       TARGET_URL: ${{ inputs.target_url || 'https://thecareers.net/' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Wait for Pages deployment on push
+        if: github.event_name == 'push'
+        run: sleep 35
 
       - name: Install free local browser QA stack
         shell: bash
