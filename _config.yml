@@ -1,0 +1,28 @@
+# GitHub Pages fallback build: publish only the static frontend surface.
+# The repository also contains backend code and tool submodules that must not
+# be processed by Jekyll.
+exclude:
+  - tools
+  - backend
+  - supabase
+  - runtime
+  - scripts
+  - tests
+  - database
+  - .agents
+  - .github
+  - .gitmodules
+  - .env.example
+  - AGENTS.md
+  - README_AR.md
+  - SECURITY.md
+  - CV_AUTH_ANALYSIS_IMPLEMENTATION.md
+  - package.json
+  - package-lock.json
+  - bun.lockb
+  - node_modules
+
+keep_files:
+  - CNAME
+
+encoding: utf-8
