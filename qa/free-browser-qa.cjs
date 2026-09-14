@@ -25,13 +25,20 @@ async function inspectPage(browser, mode, viewport) {
   });
   page.on('requestfailed', r => {
     const u = r.url();
-    const critical = u.startsWith(new URL(target).origin) || /supabase\.co/i.test(u);
-    failures.push({ type:'requestfailed', critical, url:u, message:r.failure()?.errorText || 'failed' });
+    const message = r.failure()?.errorText || 'failed';
+    /* Chromium reports superseded fetches and context-closing telemetry as
+       ERR_ABORTED. Those are lifecycle noise, not production outages. */
+    const aborted = /ERR_ABORTED/i.test(message);
+    const telemetry = /\/rest\/v1\/site_events(?:\?|$)/i.test(u);
+    const firstParty = u.startsWith(new URL(target).origin) || /supabase\.co/i.test(u);
+    const critical = firstParty && !aborted && !telemetry;
+    failures.push({ type:'requestfailed', critical, url:u, message });
   });
   page.on('response', r => {
     if (r.status() >= 400) {
       const u = r.url();
-      const critical = u.startsWith(new URL(target).origin) || /supabase\.co/i.test(u);
+      const telemetry = /\/rest\/v1\/site_events(?:\?|$)/i.test(u);
+      const critical = !telemetry && (u.startsWith(new URL(target).origin) || /supabase\.co/i.test(u));
       if (!/favicon\.ico/i.test(u)) failures.push({ type:'http', critical, status:r.status(), url:u });
     }
   });
@@ -77,24 +84,35 @@ async function inspectPage(browser, mode, viewport) {
   if (mode === 'desktop') {
     const search = page.locator('#tcJobTitleSearch');
     await search.fill('hr');
-    await page.waitForTimeout(1800);
+    await page.waitForFunction(() => {
+      const t = document.querySelector('#tcJobSearchMeta')?.textContent || '';
+      return t && !/SEARCHING BACKEND/i.test(t);
+    }, { timeout:10000 }).catch(()=>{});
+    await page.waitForTimeout(500);
     const searchMeta = clean(await page.locator('#tcJobSearchMeta').textContent().catch(()=>''));
-    assert(assertions, 'Backend role search returns status', /RELATED ROLE|0 RELATED|SEARCHING BACKEND|BACKEND READY/i.test(searchMeta), searchMeta);
-    const visibleTitles = await page.locator('.backend-job:visible .title').allTextContents();
-    const visibleCats = await page.locator('.backend-job:visible .tc-meta-item[data-meta="category"] strong').allTextContents();
-    const combined = [...visibleTitles,...visibleCats].join(' ').toLowerCase();
-    assert(assertions, 'HR search is role-aware', visibleTitles.length === 0 || /(\bhr\b|human resources|recruit|talent|people|payroll|compensation)/i.test(combined), visibleTitles.slice(0,5).join(' | '));
-    assert(assertions, 'HR search avoids raw letter false-positive', !visibleTitles.some(t => /marketing manager\/in \(teilzeit.*jahre/i.test(t)), visibleTitles.slice(0,5).join(' | '));
+    assert(assertions, 'Backend role search returns status', /RELATED ROLE|BACKEND READY/i.test(searchMeta), searchMeta);
+    const visibleTitles = (await page.locator('.backend-job:visible .title').allTextContents()).map(clean).filter(Boolean);
+    const rolePattern = /(\bhr\b|human resources|recruit|talent|people partner|people operations|personnel|payroll|compensation|employee relations|workforce)/i;
+    const sample = visibleTitles.slice(0,8);
+    const relevantSample = sample.filter(t => rolePattern.test(t));
+    assert(assertions, 'HR search returns actual HR-related roles', visibleTitles.length > 0 && relevantSample.length >= Math.min(4, sample.length), sample.join(' | '));
+    const knownBad = /(marketing manager\/in \(teilzeit.*jahre|master\/ lead nut roaster|e-commerce executive)/i;
+    assert(assertions, 'HR search avoids letter/category false-positives', !visibleTitles.some(t => knownBad.test(t)), sample.join(' | '));
     await page.screenshot({ path:path.join(outDir,'search-hr.png'), fullPage:true });
 
     await search.fill('');
-    await page.waitForTimeout(1000);
+    await page.waitForFunction(() => {
+      const t = document.querySelector('#tcJobSearchMeta')?.textContent || '';
+      return !/SEARCHING BACKEND/i.test(t);
+    }, { timeout:10000 }).catch(()=>{});
+    await page.waitForTimeout(500);
     const kuwait = page.locator('.tc-country-btn[data-country="kuwait"]');
     if (await kuwait.count()) {
-      await kuwait.click(); await page.waitForTimeout(1600);
+      await kuwait.click();
+      await page.waitForTimeout(1200);
       const countries = (await page.locator('.backend-job:visible .tc-meta-item[data-meta="country"] strong').allTextContents()).map(clean).filter(Boolean);
       assert(assertions, 'Kuwait country filter is backend-consistent', countries.length === 0 || countries.every(x => x === 'Kuwait'), countries.slice(0,10).join(', '));
-      await page.locator('.tc-country-btn[data-country="all"]').click(); await page.waitForTimeout(900);
+      await page.locator('.tc-country-btn[data-country="all"]').click(); await page.waitForTimeout(700);
     }
 
     const filter = page.locator('.row-opps .filter-btn');
