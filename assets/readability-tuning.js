@@ -13,6 +13,7 @@
     .panel-sub{font-size:12px!important;line-height:1.35!important}.live-pill{font-size:10.5px!important}.source-chip{font-size:11px!important}.source-chip .lbl b{font-size:11px!important}.source-chip .lbl span{font-size:10px!important;line-height:1.25!important}
     .scan-head{font-size:11px!important}.src-row{font-size:12px!important}.metric-big .lbl{font-size:10.5px!important}.ai-working{font-size:11px!important}.activity-row{font-size:12px!important}.agent-txt span{font-size:11.5px!important}
     .stat-title{font-size:12.5px!important}.stat-sub{font-size:11.5px!important}.leg-row{font-size:12px!important}.globe-hint{font-size:10px!important}.wf-step{font-size:11px!important}.sidebar .status-row{font-size:12px!important}
+    body .stat-row .stat-title{font-size:12.5px!important}body .stat-row .stat-sub{font-size:11.5px!important;line-height:1.35!important}
 
     /* Job card hierarchy and facts. */
     .row-opps .job-row.backend-job,.job-row.backend-job{min-height:132px!important;padding-top:16px!important;padding-bottom:16px!important}
@@ -27,10 +28,10 @@
       padding-left:9px!important;border-left:2px solid #edf0f3!important;white-space:normal!important;
     }
     .row-opps .job-row.backend-job .tc-meta-item small,.job-row.backend-job .tc-meta-item small{
-      color:#858d97!important;font:800 9.8px/1.15 'JetBrains Mono',monospace!important;letter-spacing:.035em!important;
+      color:#858d97!important;font:800 10.2px/1.2 'JetBrains Mono',monospace!important;letter-spacing:.035em!important;
     }
     .row-opps .job-row.backend-job .tc-meta-item strong,.job-row.backend-job .tc-meta-item strong{
-      max-width:100%!important;color:#333941!important;font:700 11.8px/1.3 Inter,system-ui,sans-serif!important;overflow-wrap:anywhere!important;
+      max-width:100%!important;color:#333941!important;font:700 12.4px/1.35 Inter,system-ui,sans-serif!important;overflow-wrap:anywhere!important;
     }
     .row-opps .job-row.backend-job .tc-meta-salary strong,.job-row.backend-job .tc-meta-salary strong{color:#14764a!important}
     .row-opps .job-row.backend-job .job-score .pct,.job-row.backend-job .job-score .pct{font-size:19px!important}.row-opps .job-row.backend-job .job-score .lbl,.job-row.backend-job .job-score .lbl{font-size:10px!important}
@@ -41,15 +42,34 @@
       .row-opps .job-row.backend-job .job-main .job-meta.tc-job-facts,.job-row.backend-job .job-main .job-meta.tc-job-facts{grid-template-columns:repeat(2,minmax(118px,1fr))!important}
     }
     @media(max-width:760px){
-      .panel-sub{font-size:11.5px!important}.activity-row{font-size:11.5px!important}
+      /* These selectors intentionally outrank mobile-responsive-fix.css so no essential label falls into 6–9px territory. */
+      body .row-core > section:first-child .panel-sub{font-size:11.5px!important;line-height:1.35!important}
+      body .row-core > section:first-child .panel-head > :last-child .panel-sub{font-size:10.5px!important;line-height:1.3!important}
+      body .row-core > section:first-child .live-pill{font-size:10px!important;line-height:1.2!important}
+      body .row-core .source-chip .lbl b{font-size:10.5px!important;line-height:1.2!important}
+      body .row-core .source-chip .lbl span{font-size:9.8px!important;line-height:1.25!important}
+      body .row-core .metric-big .lbl{font-size:10px!important;line-height:1.25!important}
+      body .row-core .ai-working{font-size:10.5px!important;line-height:1.4!important}
+      body .row-core .tc-scan-rail .src-row{font-size:10px!important;line-height:1.3!important}
+      body .row-core .tc-scan-rail .src-row .val{font-size:10px!important}
+      body .stat-row .stat-title{font-size:11px!important;line-height:1.3!important}
+      body .stat-row .stat-sub{font-size:10.5px!important;line-height:1.35!important}
+      body .panel-sub{font-size:11.5px!important}.activity-row{font-size:11.5px!important}
+
       .row-opps .job-row.backend-job,.job-row.backend-job{min-height:0!important}
       .row-opps .job-row.backend-job .job-main .title,.job-row.backend-job .job-main .title{font-size:15.5px!important}
       .row-opps .job-row.backend-job .job-main .company,.job-row.backend-job .job-main .company{font-size:12px!important}
       .row-opps .job-row.backend-job .job-main .job-meta.tc-job-facts,.job-row.backend-job .job-main .job-meta.tc-job-facts{grid-template-columns:1fr 1fr!important;gap:9px!important}
-      .row-opps .job-row.backend-job .tc-meta-item strong,.job-row.backend-job .tc-meta-item strong{font-size:11.2px!important}
-      .row-opps .job-row.backend-job .tc-meta-item small,.job-row.backend-job .tc-meta-item small{font-size:9.5px!important}
+      .row-opps .job-row.backend-job .tc-meta-item strong,.job-row.backend-job .tc-meta-item strong{font-size:11.8px!important;line-height:1.35!important}
+      .row-opps .job-row.backend-job .tc-meta-item small,.job-row.backend-job .tc-meta-item small{font-size:10px!important;line-height:1.2!important}
+      body .tc-country-btn{font-size:11px!important}
+      body .row-opps .tab{font-size:10.5px!important}
+      body .row-opps .select-like,body .row-opps .filter-btn{font-size:10.5px!important}
     }
-    @media(max-width:430px){.row-opps .job-row.backend-job .job-main .job-meta.tc-job-facts,.job-row.backend-job .job-main .job-meta.tc-job-facts{grid-template-columns:1fr!important}}
+    @media(max-width:430px){
+      .row-opps .job-row.backend-job .job-main .job-meta.tc-job-facts,.job-row.backend-job .job-main .job-meta.tc-job-facts{grid-template-columns:1fr!important}
+      body .row-core .source-chip .lbl span{font-size:9.8px!important;display:block!important}
+    }
   `;
   document.head.appendChild(s);
 })();
