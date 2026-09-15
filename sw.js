@@ -1,4 +1,4 @@
-const CACHE_NAME = 'thecareers-shell-v1';
+const CACHE_NAME = 'thecareers-shell-v2';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -26,40 +26,62 @@ self.addEventListener('activate', event => {
   );
 });
 
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+  try {
+    const response = await fetch(request, { cache: 'no-store' });
+    if (response.ok && response.type === 'basic') {
+      cache.put(request, response.clone()).catch(() => {});
+    }
+    return response;
+  } catch (_) {
+    return (await cache.match(request)) || (await caches.match(request));
+  }
+}
+
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok && response.type === 'basic') {
+    const cache = await caches.open(CACHE_NAME);
+    cache.put(request, response.clone()).catch(() => {});
+  }
+  return response;
+}
+
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
-
   if (url.origin !== self.location.origin) return;
+
+  if (url.pathname.startsWith('/rest/') || url.pathname.startsWith('/functions/')) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then(response => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-          return response;
-        })
-        .catch(async () => (await caches.match(request)) || caches.match('/'))
+      networkFirst(request).then(response => response || caches.match('/'))
     );
     return;
   }
 
-  if (url.pathname.startsWith('/rest/') || url.pathname.startsWith('/functions/')) return;
+  const isFreshCode =
+    request.destination === 'script' ||
+    request.destination === 'style' ||
+    request.destination === 'document' ||
+    url.pathname === '/config.js' ||
+    url.pathname === '/manifest.webmanifest' ||
+    url.pathname === '/site.webmanifest' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css');
 
-  event.respondWith(
-    caches.match(request).then(cached => {
-      const network = fetch(request).then(response => {
-        if (response.ok && response.type === 'basic') {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-        }
-        return response;
-      });
-      return cached || network;
-    })
-  );
+  if (isFreshCode) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  event.respondWith(cacheFirst(request));
 });
