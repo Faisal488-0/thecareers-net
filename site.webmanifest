@@ -1,0 +1,16 @@
+{
+  "name": "TheCareers",
+  "short_name": "TheCareers",
+  "description": "AI-assisted job discovery and matching from trusted career sources.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0b0c0e",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
