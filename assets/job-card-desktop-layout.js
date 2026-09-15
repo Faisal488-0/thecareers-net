@@ -159,14 +159,16 @@
 
   function setModernMeta(span, label, value, type) {
     if (!span) return;
+    const normalizedValue = clean(value);
+    const normalizedLabel = label.toUpperCase();
     span.classList.remove('tc-meta-location','tc-meta-employment','tc-meta-category','tc-meta-country','tc-meta-salary','tc-meta-date');
     span.classList.add(`tc-meta-${type}`);
     span.dataset.tcLabel = label;
-    span.dataset.tcValue = clean(value);
+    span.dataset.tcValue = normalizedValue;
     const small = span.querySelector('small');
-    if (small) small.textContent = label.toUpperCase();
+    if (small && clean(small.textContent) !== normalizedLabel) small.textContent = normalizedLabel;
     const strong = span.querySelector('strong');
-    if (strong) strong.textContent = clean(value);
+    if (strong && clean(strong.textContent) !== normalizedValue) strong.textContent = normalizedValue;
   }
 
   function enhanceModernMeta(row, meta) {
@@ -480,7 +482,7 @@
 
     queueEnhance();
     const observer = new MutationObserver(queueEnhance);
-    observer.observe(list, { childList: true, subtree: true, characterData: true });
+    observer.observe(list, { childList: true });
 
     window.addEventListener('resize', queueEnhance, { passive: true });
     refreshSalaryMap();
