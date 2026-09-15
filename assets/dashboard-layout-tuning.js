@@ -61,23 +61,66 @@
 
     /* Top Opportunities uses the full available width. */
     .row-opps{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important;min-width:0!important}
-    .row-opps>section:first-child{width:100%!important;max-width:none!important;min-width:0!important}
+    .row-opps>section:first-child{width:100%!important;max-width:none!important;min-width:0!important;overflow:hidden!important}
     .row-opps>section[data-tc-removed-sector-panel='1'],.row-opps>section:nth-child(2){display:none!important}
+    .row-opps .panel-head{padding:15px 18px 9px!important}
     .row-opps .panel-title{font-size:16px!important}
+
+    /* Toolbar: tabs stay grouped left; Sort + Filters stay aligned right. */
     .row-opps .opps-toolbar{
-      display:flex!important;justify-content:space-between!important;align-items:center!important;
-      width:100%!important;gap:14px!important;padding-left:18px!important;padding-right:18px!important;
-      flex-wrap:wrap!important;
+      display:grid!important;
+      grid-template-columns:minmax(0,1fr) auto!important;
+      align-items:center!important;
+      width:100%!important;
+      gap:10px 18px!important;
+      padding:12px 14px 14px!important;
+      margin:0!important;
+      border-top:1px solid #eef1f4!important;
+      border-bottom:1px solid #eef1f4!important;
+      background:#fff!important;
+      box-sizing:border-box!important;
+      flex-wrap:unset!important;
     }
-    .row-opps .tabs{display:flex!important;gap:8px!important;min-width:0!important;flex-wrap:wrap!important}
-    .row-opps .opps-actions{display:flex!important;gap:8px!important;margin-left:auto!important}
+    .row-opps .tabs{
+      grid-column:1!important;
+      display:flex!important;align-items:center!important;
+      gap:8px!important;min-width:0!important;flex-wrap:nowrap!important;
+      overflow-x:auto!important;overflow-y:hidden!important;
+      scrollbar-width:none!important;padding:1px 0 2px!important;
+    }
+    .row-opps .tabs::-webkit-scrollbar{display:none!important}
+    .row-opps .opps-actions{
+      grid-column:2!important;
+      display:flex!important;align-items:center!important;justify-content:flex-end!important;
+      gap:8px!important;margin:0!important;min-width:max-content!important;
+    }
     .row-opps .tab,.row-opps .select-like,.row-opps .filter-btn{
-      font-size:12px!important;min-height:38px!important;padding:8px 14px!important;border-radius:11px!important;
+      min-height:40px!important;height:40px!important;
+      padding:0 14px!important;border-radius:11px!important;
+      display:inline-flex!important;align-items:center!important;justify-content:center!important;
+      box-sizing:border-box!important;white-space:nowrap!important;
+      font-size:11.5px!important;line-height:1!important;font-weight:750!important;
+    }
+    .row-opps .tab{flex:0 0 auto!important;min-width:112px!important}
+    .row-opps .select-like{min-width:148px!important}
+    .row-opps .filter-btn{min-width:86px!important}
+
+    /* Keep any injected role-search strip visually aligned with the toolbar. */
+    .row-opps .tc-role-search,
+    .row-opps .job-role-search,
+    .row-opps .opps-search,
+    .row-opps .job-search-strip,
+    .row-opps [data-tc-role-search]{
+      width:calc(100% - 28px)!important;
+      margin:0 14px 10px!important;
+      box-sizing:border-box!important;
     }
 
     @media(max-width:1100px){
       .stat-row{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
       .stat-row .stat-card{min-height:124px!important}
+      .row-opps .opps-toolbar{grid-template-columns:1fr!important;gap:10px!important}
+      .row-opps .opps-actions{grid-column:1!important;justify-content:flex-end!important;width:100%!important}
     }
     @media(max-width:760px){
       .stat-row{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
@@ -88,10 +131,19 @@
       .stat-row .stat-num{font-size:22px!important}
       .stat-row .stat-sub{font-size:8.6px!important;margin-top:6px!important}
       .stat-row .stat-spark{height:20px!important;margin-top:7px!important}
-      .row-opps .opps-toolbar{align-items:flex-start!important;padding-left:10px!important;padding-right:10px!important;gap:10px!important}
-      .row-opps .tabs{width:100%!important;overflow-x:auto!important;flex-wrap:nowrap!important;padding-bottom:2px!important}
-      .row-opps .opps-actions{width:100%!important;margin-left:0!important;justify-content:flex-end!important}
-      .row-opps .tab,.row-opps .select-like,.row-opps .filter-btn{font-size:11px!important;min-height:36px!important;padding:7px 11px!important}
+      .row-opps .panel-head{padding:13px 11px 8px!important}
+      .row-opps .opps-toolbar{padding:10px 9px 12px!important;gap:9px!important}
+      .row-opps .tabs{width:100%!important;padding-bottom:3px!important}
+      .row-opps .opps-actions{width:100%!important;justify-content:stretch!important}
+      .row-opps .select-like{flex:1 1 auto!important;min-width:0!important}
+      .row-opps .filter-btn{flex:0 0 88px!important;min-width:88px!important}
+      .row-opps .tab,.row-opps .select-like,.row-opps .filter-btn{font-size:10.8px!important;min-height:38px!important;height:38px!important;padding:0 11px!important}
+      .row-opps .tab{min-width:104px!important}
+      .row-opps .tc-role-search,
+      .row-opps .job-role-search,
+      .row-opps .opps-search,
+      .row-opps .job-search-strip,
+      .row-opps [data-tc-role-search]{width:calc(100% - 18px)!important;margin:0 9px 9px!important}
     }
     @media(max-width:420px){
       .stat-row{grid-template-columns:1fr!important}
