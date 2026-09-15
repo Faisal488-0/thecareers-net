@@ -59,10 +59,65 @@
 
   function stripMetaIcon(text, type) {
     let value = clean(text);
+    value = value.replace(/^(?:COUNTRY|LOCATION|EMPLOYMENT\s*TYPE|CATEGORY|SALARY\s*RANGE|DATE\s*POSTED)\s*/i, '');
     if (type === 'location') value = value.replace(/^[\s📍]+/u, '');
     else if (type === 'employment') value = value.replace(/^[\s🕐⏱⌚]+/u, '');
     else if (type === 'category') value = value.replace(/^[\s▤▦▣]+/u, '');
     return clean(value);
+  }
+
+  function normalizeCountry(value) {
+    const raw = stripMetaIcon(value, 'country');
+    if (!raw || /^(?:n\/?a|none|null|undefined|not specified|international)$/i.test(raw)) return raw || 'Not specified';
+    const key = raw.toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const map = {
+      'uae':'United Arab Emirates',
+      'u a e':'United Arab Emirates',
+      'united arab emirates':'United Arab Emirates',
+      'ksa':'Saudi Arabia',
+      'k s a':'Saudi Arabia',
+      'saudi':'Saudi Arabia',
+      'saudi arabia':'Saudi Arabia',
+      'kingdom of saudi arabia':'Saudi Arabia',
+      'kuwait':'Kuwait',
+      'state of kuwait':'Kuwait',
+      'qatar':'Qatar',
+      'oman':'Oman',
+      'sultanate of oman':'Oman',
+      'bahrain':'Bahrain',
+      'kingdom of bahrain':'Bahrain'
+    };
+    return map[key] || raw;
+  }
+
+  function normalizeEmployment(value) {
+    const raw = stripMetaIcon(value, 'employment');
+    if (!raw || /^(?:n\/?a|none|null|undefined|not specified|unspecified)$/i.test(raw)) return 'Not specified';
+    const key = raw.toLowerCase().replace(/[_/]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (/^full\s*time$/.test(key)) return 'Full-time';
+    if (/^part\s*time$/.test(key)) return 'Part-time';
+    if (/^(?:contract|contractor|fixed term|fixed-term)$/.test(key)) return 'Contract';
+    if (/^(?:temporary|temp)$/.test(key)) return 'Temporary';
+    if (/^(?:internship|intern|trainee)$/.test(key)) return 'Internship';
+    if (/^(?:freelance|freelancer)$/.test(key)) return 'Freelance';
+    if (/^(?:remote|work from home)$/.test(key)) return 'Remote';
+    return raw;
+  }
+
+  function normalizeCategory(value) {
+    const raw = stripMetaIcon(value, 'category');
+    return raw && !/^(?:n\/?a|none|null|undefined|not specified)$/i.test(raw) ? raw : 'Not specified';
+  }
+
+  function normalizeLocation(value, country) {
+    const raw = stripMetaIcon(value, 'location');
+    if (!raw || /^(?:n\/?a|none|null|undefined|not specified)$/i.test(raw)) return 'Not specified';
+    const normalizedCountry = normalizeCountry(country);
+    const normalizedRaw = normalizeCountry(raw);
+    if (normalizedCountry !== 'Not specified' && normalizedRaw.toLowerCase() === normalizedCountry.toLowerCase()) {
+      return normalizedCountry;
+    }
+    return raw;
   }
 
   function dateValue(row) {
@@ -93,48 +148,112 @@
     };
   }
 
+  function directMetaValue(span) {
+    if (!span) return '';
+    const strong = span.querySelector('strong');
+    if (strong) return clean(strong.textContent);
+    const clone = span.cloneNode(true);
+    clone.querySelectorAll('small').forEach(node => node.remove());
+    return clean(clone.textContent);
+  }
+
+  function setModernMeta(span, label, value, type) {
+    if (!span) return;
+    span.classList.remove('tc-meta-location','tc-meta-employment','tc-meta-category','tc-meta-country','tc-meta-salary','tc-meta-date');
+    span.classList.add(`tc-meta-${type}`);
+    span.dataset.tcLabel = label;
+    span.dataset.tcValue = clean(value);
+    const small = span.querySelector('small');
+    if (small) small.textContent = label.toUpperCase();
+    const strong = span.querySelector('strong');
+    if (strong) strong.textContent = clean(value);
+  }
+
+  function enhanceModernMeta(row, meta) {
+    const items = Array.from(meta.querySelectorAll(':scope > .tc-meta-item[data-meta]'));
+    if (!items.length) return false;
+
+    const byKey = new Map(items.map(item => [clean(item.dataset.meta).toLowerCase(), item]));
+    const countrySpan = byKey.get('country');
+    const locationSpan = byKey.get('location');
+    const typeSpan = byKey.get('type') || byKey.get('employment') || byKey.get('employment_type');
+    const categorySpan = byKey.get('category');
+    const salarySpan = byKey.get('salary');
+    const dateSpan = byKey.get('date') || byKey.get('posted') || byKey.get('date_posted');
+
+    const country = normalizeCountry(directMetaValue(countrySpan));
+    const location = normalizeLocation(directMetaValue(locationSpan), country);
+    const employment = normalizeEmployment(directMetaValue(typeSpan));
+    const category = normalizeCategory(directMetaValue(categorySpan));
+
+    setModernMeta(countrySpan, 'Country', country, 'country');
+    setModernMeta(locationSpan, 'Location', location, 'location');
+    setModernMeta(typeSpan, 'Employment Type', employment, 'employment');
+    setModernMeta(categorySpan, 'Category', category, 'category');
+
+    if (salarySpan) {
+      const currentSalary = stripMetaIcon(directMetaValue(salarySpan), 'salary');
+      const optionalSalary = salaryText(jobDataForRow(row)).replace(/^Salary\s*:\s*/i, '');
+      const salary = currentSalary && !/^(?:not disclosed|n\/?a|none|null|undefined)$/i.test(currentSalary)
+        ? currentSalary
+        : (optionalSalary || 'Not disclosed');
+      setModernMeta(salarySpan, 'Salary Range', salary, 'salary');
+    }
+
+    if (dateSpan) {
+      const posted = stripMetaIcon(directMetaValue(dateSpan), 'date') || dateValue(row);
+      setModernMeta(dateSpan, 'Date Posted', posted || 'Recently', 'date');
+    }
+
+    /* Remove only legacy synthetic duplicates. The six canonical data-meta fields stay intact. */
+    meta.querySelectorAll(':scope > .tc-meta-date:not(.tc-meta-item), :scope > .tc-job-salary:not(.tc-meta-item)').forEach(el => el.remove());
+    return true;
+  }
+
   function enhanceCard(row) {
     if (!(row instanceof HTMLElement) || !row.classList.contains('backend-job')) return;
     const main = row.querySelector('.job-main');
     const meta = row.querySelector('.job-meta');
     if (!main || !meta) return;
 
-    const baseSpans = Array.from(meta.children).filter(el =>
-      el instanceof HTMLElement &&
-      !el.classList.contains('tc-meta-date') &&
-      !el.classList.contains('tc-job-salary')
-    );
-    tagMeta(baseSpans[0], 'Location', 'location');
-    tagMeta(baseSpans[1], 'Employment Type', 'employment');
-    tagMeta(baseSpans[2], 'Category', 'category');
+    if (!enhanceModernMeta(row, meta)) {
+      const baseSpans = Array.from(meta.children).filter(el =>
+        el instanceof HTMLElement &&
+        !el.classList.contains('tc-meta-date') &&
+        !el.classList.contains('tc-job-salary')
+      );
+      tagMeta(baseSpans[0], 'Location', 'location');
+      tagMeta(baseSpans[1], 'Employment Type', 'employment');
+      tagMeta(baseSpans[2], 'Category', 'category');
 
-    let date = meta.querySelector(':scope > .tc-meta-date');
-    if (!date) {
-      date = document.createElement('span');
-      date.className = 'tc-meta-date';
-      date.dataset.tcLabel = 'Date Posted';
-      meta.appendChild(date);
-    }
-    const posted = dateValue(row);
-    date.dataset.tcValue = posted;
-    const dateText = `Date Posted · ${posted}`;
-    if (date.textContent !== dateText) date.textContent = dateText;
-
-    const formattedSalary = salaryText(jobDataForRow(row));
-    let salary = meta.querySelector(':scope > .tc-job-salary');
-    if (formattedSalary) {
-      if (!salary) {
-        salary = document.createElement('span');
-        salary.className = 'tc-job-salary';
-        salary.dataset.tcLabel = 'Salary Range';
-        meta.appendChild(salary);
+      let date = meta.querySelector(':scope > .tc-meta-date');
+      if (!date) {
+        date = document.createElement('span');
+        date.className = 'tc-meta-date';
+        date.dataset.tcLabel = 'Date Posted';
+        meta.appendChild(date);
       }
-      const salaryValue = formattedSalary.replace(/^Salary\s*:\s*/i, '');
-      salary.dataset.tcValue = salaryValue;
-      if (salary.textContent !== formattedSalary) salary.textContent = formattedSalary;
-      salary.setAttribute('aria-label', formattedSalary);
-    } else if (salary) {
-      salary.remove();
+      const posted = dateValue(row);
+      date.dataset.tcValue = posted;
+      const dateText = `Date Posted · ${posted}`;
+      if (date.textContent !== dateText) date.textContent = dateText;
+
+      const formattedSalary = salaryText(jobDataForRow(row));
+      let salary = meta.querySelector(':scope > .tc-job-salary');
+      if (formattedSalary) {
+        if (!salary) {
+          salary = document.createElement('span');
+          salary.className = 'tc-job-salary';
+          salary.dataset.tcLabel = 'Salary Range';
+          meta.appendChild(salary);
+        }
+        const salaryValue = formattedSalary.replace(/^Salary\s*:\s*/i, '');
+        salary.dataset.tcValue = salaryValue;
+        if (salary.textContent !== formattedSalary) salary.textContent = formattedSalary;
+        salary.setAttribute('aria-label', formattedSalary);
+      } else if (salary) {
+        salary.remove();
+      }
     }
 
     row.classList.add('tc-job-card-refined');
@@ -157,7 +276,8 @@
     style.id = STYLE_ID;
     style.textContent = `
       /* Salary is allowed on all breakpoints; desktop gets the new two-sided hierarchy. */
-      #jobList .job-row.backend-job .job-meta .tc-job-salary{
+      #jobList .job-row.backend-job .job-meta .tc-job-salary,
+      #jobList .job-row.backend-job .job-meta .tc-meta-item[data-meta="salary"]{
         font-weight:700!important;color:#555d68!important;
       }
 
@@ -253,7 +373,8 @@
           white-space:normal;
           overflow-wrap:anywhere;
         }
-        html body .row-opps #jobList .job-row.backend-job.tc-job-card-refined .job-meta .tc-job-salary::after{
+        html body .row-opps #jobList .job-row.backend-job.tc-job-card-refined .job-meta .tc-job-salary::after,
+        html body .row-opps #jobList .job-row.backend-job.tc-job-card-refined .job-meta .tc-meta-item[data-meta="salary"]::after{
           color:#303740;
           font-weight:800;
         }
@@ -317,7 +438,7 @@
       }
 
       @media (max-width: 900px) {
-        #jobList .job-row.backend-job .job-meta .tc-meta-date{display:none!important;}
+        #jobList .job-row.backend-job .job-meta .tc-meta-date:not(.tc-meta-item){display:none!important;}
         #jobList .job-row.backend-job .job-meta .tc-job-salary{
           display:inline!important;
           font-size:10px!important;
