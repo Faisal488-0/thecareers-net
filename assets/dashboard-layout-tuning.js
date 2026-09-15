@@ -23,6 +23,22 @@
   const style = document.createElement('style');
   style.id = 'tc-dashboard-layout-tuning-style';
   style.textContent = `
+    /* UI chrome should feel like an app, not selectable article text. */
+    .stat-row .stat-card,
+    .stat-row .stat-card *,
+    .row-opps .panel-title,
+    .row-opps .opps-toolbar,
+    .row-opps .opps-toolbar *,
+    button,.btn,[role="button"],nav,nav *,aside,aside *{
+      -webkit-user-select:none!important;user-select:none!important;
+    }
+    /* Preserve copy/select behavior for useful job content and form fields. */
+    .job-card .job-title,.job-card .job-description,.job-card .job-company,.job-card .job-meta,
+    .job-card [data-job-title],.job-card [data-job-description],
+    input,textarea,[contenteditable="true"]{
+      -webkit-user-select:text!important;user-select:text!important;
+    }
+
     /* Four summary cards: align to the full dashboard content width. */
     .stat-row{
       width:100%!important;max-width:none!important;margin:0!important;
