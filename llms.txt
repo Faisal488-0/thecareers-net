@@ -1,0 +1,17 @@
+# TheCareers
+
+Official website: https://thecareers.net/
+
+TheCareers is an AI-assisted job discovery and matching service. It collects opportunities from supported employer, school, government and job-source pages, normalizes them, removes duplicates and keeps source provenance so job seekers can verify the original listing.
+
+Useful public pages:
+- Home and AI search: https://thecareers.net/
+- Jobs in Kuwait: https://thecareers.net/jobs-kuwait.html
+- School jobs in Kuwait: https://thecareers.net/school-jobs-kuwait.html
+- HR jobs in Kuwait: https://thecareers.net/hr-jobs-kuwait.html
+- Oil & gas jobs in Kuwait: https://thecareers.net/oil-gas-jobs-kuwait.html
+- Arabic Kuwait jobs guide: https://thecareers.net/ar/jobs-kuwait.html
+- Privacy: https://thecareers.net/privacy.html
+- Terms: https://thecareers.net/terms.html
+
+Important: TheCareers is not the employer. Vacancy status, eligibility and application requirements should be confirmed at the original source before applying.
