@@ -106,3 +106,47 @@ window.THECAREERS_CONFIG = {
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',applyGuest,{once:true});else applyGuest();
 })();
+
+(() => {
+  'use strict';
+  if (window.__THECAREERS_PWA_BOOTSTRAPPED__) return;
+  window.__THECAREERS_PWA_BOOTSTRAPPED__ = true;
+
+  const ensureLink = (rel, href, attrs = {}) => {
+    let link = document.querySelector(`link[rel="${rel}"]`);
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = rel;
+      document.head.appendChild(link);
+    }
+    link.href = href;
+    Object.entries(attrs).forEach(([key, value]) => link.setAttribute(key, value));
+    return link;
+  };
+
+  const ensureMeta = (name, content) => {
+    let meta = document.querySelector(`meta[name="${name}"]`);
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = name;
+      document.head.appendChild(meta);
+    }
+    meta.content = content;
+  };
+
+  ensureLink('manifest', '/manifest.webmanifest');
+  ensureLink('apple-touch-icon', '/assets/pwa/icon-192.png', { sizes: '192x192' });
+  ensureMeta('theme-color', '#0b0c0e');
+  ensureMeta('mobile-web-app-capable', 'yes');
+  ensureMeta('apple-mobile-web-app-capable', 'yes');
+  ensureMeta('apple-mobile-web-app-status-bar-style', 'black-translucent');
+  ensureMeta('apple-mobile-web-app-title', 'TheCareers');
+
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then(registration => registration.update())
+        .catch(error => console.warn('[TheCareers] PWA service worker registration failed', error));
+    }, { once: true });
+  }
+})();
