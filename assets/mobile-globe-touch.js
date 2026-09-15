@@ -42,6 +42,44 @@
           overscroll-behavior:auto !important;
         }
       }
+
+      /* Audit polish for narrow phones: keep the header inside the card and
+         give all six source controls enough width to remain readable/tappable. */
+      @media (max-width:420px) {
+        .row-core > section:first-child .panel-head > :last-child {
+          min-width:0 !important;
+          width:100px !important;
+          max-width:32% !important;
+          flex:0 1 100px !important;
+        }
+        .row-core > section:first-child .panel-head > :last-child .panel-sub {
+          overflow-wrap:break-word !important;
+          word-break:normal !important;
+        }
+        .row-core .core-visual.thecareers-globe-zone {
+          grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+          grid-template-rows:auto auto auto auto !important;
+          gap:7px !important;
+        }
+        .row-core .thecareers-globe-zone #thecareers-globe-stage {
+          grid-column:1 / 3 !important;
+          grid-row:1 !important;
+        }
+        .row-core .source-chip {
+          min-height:48px !important;
+          padding:7px 8px !important;
+        }
+        .row-core .source-chip .lbl b {
+          font-size:9px !important;
+          line-height:1.15 !important;
+        }
+        .row-core .sc-companies{grid-column:1!important;grid-row:2!important}
+        .row-core .sc-schools{grid-column:2!important;grid-row:2!important}
+        .row-core .sc-international{grid-column:1!important;grid-row:3!important}
+        .row-core .sc-oilgas{grid-column:2!important;grid-row:3!important}
+        .row-core .sc-government{grid-column:1!important;grid-row:4!important}
+        .row-core .sc-talent{grid-column:2!important;grid-row:4!important}
+      }
     `;
   };
 
