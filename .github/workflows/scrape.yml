@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'backend/scrape-oidc.mjs'
+      - 'backend/challenge-fallback-oidc.mjs'
       - 'backend/arbeitnow-ingest.mjs'
       - 'backend/skills/**'
       - 'package.json'
@@ -79,3 +80,10 @@ jobs:
             exit 0
           fi
           exit "$code"
+
+      - name: Run challenge-safe public fallback
+        if: always()
+        shell: bash
+        env:
+          SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
+        run: node backend/challenge-fallback-oidc.mjs
