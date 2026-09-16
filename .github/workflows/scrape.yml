@@ -11,8 +11,8 @@ on:
       - 'package.json'
       - '.github/workflows/scrape.yml'
   schedule:
-    # Every hour. Each run receives a fair rotating source batch from Supabase.
-    - cron: '17 * * * *'
+    # Every 8 hours to reduce Supabase/API usage while keeping jobs reasonably fresh.
+    - cron: '37 */8 * * *'
 
 permissions:
   contents: read
