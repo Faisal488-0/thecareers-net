@@ -6,6 +6,7 @@
   const PAGE_SIZE = 10;
   let page = 1;
   let applying = false;
+  let wasAdvancedActive = false;
   const filters = {
     types: new Set(),
     workMode: 'any',
@@ -193,10 +194,14 @@
         if (advancedPager) { advancedPager.hidden = true; advancedPager.innerHTML = ''; }
         if (nativePager) nativePager.style.removeProperty('display');
         rows().forEach(row => { row.style.removeProperty('display'); row.removeAttribute('aria-hidden'); });
-        document.dispatchEvent(new CustomEvent('tc:country-filter-change', { detail: { country: document.documentElement.dataset.tcCountryFilter || 'all' } }));
+        if (wasAdvancedActive) {
+          wasAdvancedActive = false;
+          document.dispatchEvent(new CustomEvent('tc:country-filter-change', { detail: { country: document.documentElement.dataset.tcCountryFilter || 'all', restoreFromAdvanced: true } }));
+        }
         return;
       }
 
+      wasAdvancedActive = true;
       if (nativePager) nativePager.style.setProperty('display', 'none', 'important');
       if (advancedPager) advancedPager.hidden = false;
       const matched = matchedRows();
@@ -287,7 +292,7 @@
 
     const observer = new MutationObserver(() => { if (!applying && isActive()) setTimeout(scheduleApply, 20); });
     observer.observe(jobList, { childList: true });
-    document.addEventListener('tc:country-filter-change', () => { page = 1; setTimeout(scheduleApply, 80); });
+    document.addEventListener('tc:country-filter-change', event => { if (event.detail?.restoreFromAdvanced) return; page = 1; setTimeout(scheduleApply, 80); });
     document.addEventListener('tc:job-search-results', () => { page = 1; setTimeout(scheduleApply, 80); });
     document.querySelectorAll('.tab,.filter-btn,.select-like,.source-chip,.leg-row[data-sector],.net-node').forEach(el => el.addEventListener('click', () => { page = 1; setTimeout(scheduleApply, 100); }, true));
 
