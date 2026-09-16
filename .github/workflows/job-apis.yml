@@ -8,10 +8,8 @@ on:
       - 'backend/jooble-ingest.mjs'
       - '.github/workflows/job-apis.yml'
   schedule:
-    # JSearch twice daily to stay comfortably inside free-tier request limits.
-    - cron: '23 2,14 * * *'
-    # Jooble Kuwait once daily; its free key has a lifetime request cap.
-    - cron: '37 3 * * *'
+    # Run both API collectors together once daily to minimize GitHub/Supabase wake-ups.
+    - cron: '23 5 * * *'
 
 permissions:
   contents: read
@@ -58,14 +56,12 @@ jobs:
           echo "GITHUB_OIDC_TOKEN=$TOKEN" >> "$GITHUB_ENV"
 
       - name: Ingest JSearch Kuwait
-        if: github.event_name != 'schedule' || github.event.schedule == '23 2,14 * * *'
         env:
           JSEARCH_API_KEY: ${{ secrets.JSEARCH_API_KEY }}
           SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
         run: node backend/jsearch-ingest.mjs
 
       - name: Ingest Jooble Kuwait
-        if: github.event_name != 'schedule' || github.event.schedule == '37 3 * * *'
         env:
           JOOBLE_KW_API_KEY: ${{ secrets.JOOBLE_KW_API_KEY }}
           SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
