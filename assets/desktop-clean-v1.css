@@ -1,0 +1,25 @@
+/* TheCareers Desktop Clean V1 — final authority for desktop/tablet. */
+@media (min-width:761px){
+ html,body{max-width:100%;overflow-x:hidden!important}
+ .app{grid-template-columns:240px minmax(0,1fr)!important;width:100%!important}
+ .main,.content,.row-core,.panel,.core-body,.topbar,.topbar-right{min-width:0!important}
+ .topbar{gap:18px!important}.topbar-left{min-width:0!important;flex:1 1 auto!important}.topbar-right{flex:0 0 auto!important;gap:16px!important}
+ .content{width:100%!important}
+ .row-core{grid-template-columns:minmax(0,1.62fr) minmax(320px,1fr)!important}
+ .row-core>section{min-width:0!important;overflow:hidden!important}
+ .core-body{grid-template-columns:minmax(0,1fr) 190px!important}
+ .core-visual.thecareers-globe-zone{grid-template-columns:minmax(118px,1fr) minmax(300px,30vw) minmax(118px,1fr)!important;column-gap:10px!important;min-width:0!important;overflow:visible!important}
+ .thecareers-globe-zone #thecareers-globe-stage{width:clamp(300px,30vw,520px)!important;max-width:100%!important}
+ .source-chip{min-width:0!important;max-width:165px!important;overflow:hidden!important}.source-chip .lbl{min-width:0!important}.source-chip .lbl b,.source-chip .lbl span{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+ .metrics-col{min-width:0!important;padding-left:16px!important}.metric-big{min-width:0!important}.metric-big .num{overflow-wrap:anywhere!important}
+ .panel-head{gap:16px!important}.panel-head>div{min-width:0!important}.panel-title,.panel-sub{max-width:100%!important}
+ .job-row{position:relative!important;isolation:isolate!important;min-width:0!important;height:auto!important;overflow:hidden!important}
+ .job-row>*{min-width:0!important}.job-main,.job-meta,.job-actions{min-width:0!important}.job-main .title,.job-main .company{max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+ .job-meta{overflow:hidden!important}.job-meta *{max-width:100%!important}.job-actions{position:relative!important;inset:auto!important;transform:none!important}
+ .activity-row .m{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+ .panel,.job-row,.source-chip{contain:layout paint}
+}
+@media (min-width:761px) and (max-width:1180px){
+ .topbar-left{display:none!important}.status-chip{display:none!important}.row-core{grid-template-columns:1fr!important}.core-visual.thecareers-globe-zone{grid-template-columns:minmax(130px,1fr) minmax(300px,38vw) minmax(130px,1fr)!important}.thecareers-globe-zone #thecareers-globe-stage{width:clamp(300px,38vw,460px)!important}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
