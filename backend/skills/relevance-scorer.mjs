@@ -1,7 +1,11 @@
 const DEFAULT_TERMS = [
   'hr','human resources','operations','administration','administrative',
   'information systems','business development','recruitment','oil','gas',
-  'education','school','teacher','mathematics','coordinator','specialist'
+  'education','school','teacher','mathematics','coordinator','specialist',
+  'hr officer','hr generalist','hr specialist','people officer','personnel',
+  'government relations','pro officer','gate pass','koc','payroll','onboarding',
+  'employee relations','workforce administration','executive support','executive secretary',
+  'site logistics','transport coordination','fleet supervision'
 ];
 
 export function scoreJob(job, terms = DEFAULT_TERMS) {
