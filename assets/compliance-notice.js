@@ -24,6 +24,16 @@ const ready=()=>{
     if(row?.classList.contains('row-opps')) row.style.gridTemplateColumns='minmax(0,1fr)';
   }
 
+  // Remove the live activity card and let the AI core use the full row width.
+  const activityPanel=[...document.querySelectorAll('.row-core > .panel')].find(panel=>
+    [...panel.querySelectorAll('.panel-title')].some(title=>(title.textContent||'').trim().toUpperCase()==='// LIVE SEARCH ACTIVITY')
+  );
+  if(activityPanel){
+    const row=activityPanel.parentElement;
+    activityPanel.remove();
+    if(row?.classList.contains('row-core')) row.style.gridTemplateColumns='minmax(0,1fr)';
+  }
+
   const key='thecareers_privacy_notice_v1';let seen=true;try{seen=localStorage.getItem(key)==='ack'}catch{}
   if(!seen&&!document.getElementById('tcPrivacyNotice')){
     const box=document.createElement('aside');box.id='tcPrivacyNotice';box.setAttribute('role','region');box.setAttribute('aria-label','Privacy and cookie notice');
