@@ -1,0 +1,25 @@
+name: TheCareers daily Telegram summary
+
+on:
+  schedule:
+    # GitHub Actions cron is UTC. 20:59 UTC = 23:59 Asia/Kuwait.
+    - cron: '59 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  daily-summary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send daily Telegram summary
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_REPORT_MODE: daily
+        run: node backend/telegram-site-alerts.mjs
