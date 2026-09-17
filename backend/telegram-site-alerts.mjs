@@ -4,6 +4,7 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://cqqozlmsvysmxdkkxjbj.
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
+const REPORT_MODE = (process.env.TELEGRAM_REPORT_MODE || 'hourly').toLowerCase();
 
 if (!SERVICE_KEY || !BOT_TOKEN || !CHAT_ID) {
   console.error('Missing SUPABASE_SERVICE_ROLE_KEY / TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID');
@@ -28,8 +29,9 @@ async function telegram(text) {
 }
 
 const now = new Date();
-const since = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
-const events = await rest(`site_events?select=id,event_type,session_id,user_id,page,meta,created_at&created_at=gte.${encodeURIComponent(since)}&order=created_at.asc&limit=5000`);
+const hours = REPORT_MODE === 'daily' ? 24 : 1;
+const since = new Date(now.getTime() - hours * 60 * 60 * 1000).toISOString();
+const events = await rest(`site_events?select=id,event_type,session_id,user_id,page,meta,created_at&created_at=gte.${encodeURIComponent(since)}&order=created_at.asc&limit=10000`);
 
 const counts = {};
 const sessions = new Set();
@@ -38,9 +40,15 @@ for (const e of events) {
   if (e.session_id) sessions.add(e.session_id);
 }
 
-const important = events.filter(e => ['search_now','cv_analyze_started','auth_submit','job_save'].includes(e.event_type));
 const fmt = n => Number(n || 0).toLocaleString('en-US');
 
+if (REPORT_MODE === 'daily') {
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kuwait', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+  await telegram(`⚡ TheCareers Daily — ${date}\n👀 Visits: ${fmt(counts.visit)}`);
+  process.exit(0);
+}
+
+const important = events.filter(e => ['search_now','cv_analyze_started','auth_submit','job_save'].includes(e.event_type));
 if (events.length) {
   const lines = [
     '📊 TheCareers • Last 60 minutes',
@@ -55,7 +63,6 @@ if (events.length) {
   await telegram(lines.join('\n'));
 }
 
-// Send compact instant-ish activity summary for meaningful interactions.
 if (important.length) {
   const recent = important.slice(-8).map(e => {
     const icon = ({search_now:'🔎',cv_analyze_started:'📄',auth_submit:'🔐',job_save:'⭐'})[e.event_type] || '•';
