@@ -34,6 +34,20 @@ const ready=()=>{
     if(row?.classList.contains('row-core')) row.style.gridTemplateColumns='minmax(0,1fr)';
   }
 
+  // Remove the narrow Search Visualization / metrics sidebar from the AI core.
+  const aiCorePanel=[...document.querySelectorAll('.row-core > .panel')].find(panel=>
+    [...panel.querySelectorAll('.panel-title')].some(title=>(title.textContent||'').trim().toUpperCase().includes('AI SEARCH CORE'))
+  );
+  if(aiCorePanel){
+    aiCorePanel.querySelector('.metrics-col')?.remove();
+    const coreBody=aiCorePanel.querySelector('.core-body');
+    if(coreBody) coreBody.style.gridTemplateColumns='minmax(0,1fr)';
+    const visualizationHead=[...aiCorePanel.querySelectorAll('.panel-head > div')].find(el=>
+      (el.textContent||'').toUpperCase().includes('SEARCH VISUALIZATION')
+    );
+    visualizationHead?.remove();
+  }
+
   const key='thecareers_privacy_notice_v1';let seen=true;try{seen=localStorage.getItem(key)==='ack'}catch{}
   if(!seen&&!document.getElementById('tcPrivacyNotice')){
     const box=document.createElement('aside');box.id='tcPrivacyNotice';box.setAttribute('role','region');box.setAttribute('aria-label','Privacy and cookie notice');
