@@ -14,6 +14,16 @@ const ready=()=>{
   replaceExact('.live-pill','180+ PLATFORMS','MULTIPLE SOURCES');
   replaceExact('.net-node b','LinkedIn','Job Boards');
 
+  // The sector chart was intentionally removed from TheCareers.net.
+  const sectorPanel=[...document.querySelectorAll('.row-opps > .panel')].find(panel=>
+    [...panel.querySelectorAll('.panel-title')].some(title=>(title.textContent||'').trim().toUpperCase()==='// JOBS BY SECTOR')
+  );
+  if(sectorPanel){
+    const row=sectorPanel.parentElement;
+    sectorPanel.remove();
+    if(row?.classList.contains('row-opps')) row.style.gridTemplateColumns='minmax(0,1fr)';
+  }
+
   const key='thecareers_privacy_notice_v1';let seen=true;try{seen=localStorage.getItem(key)==='ack'}catch{}
   if(!seen&&!document.getElementById('tcPrivacyNotice')){
     const box=document.createElement('aside');box.id='tcPrivacyNotice';box.setAttribute('role','region');box.setAttribute('aria-label','Privacy and cookie notice');
