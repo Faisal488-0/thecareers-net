@@ -11,8 +11,8 @@ on:
       - 'package.json'
       - '.github/workflows/scrape.yml'
   schedule:
-    # Every 8 hours to reduce Supabase/API usage while keeping jobs reasonably fresh.
-    - cron: '37 */8 * * *'
+    # Five refresh windows per day, approximately every 5 hours, staying within free-tier limits.
+    - cron: '37 0,5,10,15,20 * * *'
 
 permissions:
   contents: read
