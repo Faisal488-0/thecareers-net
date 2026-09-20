@@ -64,7 +64,7 @@ if(document.querySelector('script[data-tc-job-filters-net]'))return;
 const s=document.createElement('script');
 s.dataset.tcJobFiltersNet='1';
 const base=document.currentScript?.src||location.href;
-s.src=new URL('./job-filters-panel.js?v=20260920-sidebar3',base).href;
+s.src=new URL('./job-filters-panel.js?v=20260920-sidebar4',base).href;
 s.async=false;
 s.addEventListener('error',()=>console.error('[TheCareers] Job filters failed to load'));
 document.head.appendChild(s);
