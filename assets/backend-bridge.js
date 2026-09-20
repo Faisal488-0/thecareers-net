@@ -246,14 +246,16 @@
   function updateMetrics(sourceCount=null, applicationCount=null) {
     const rows=validJobs(latestJobs), high=highJobs(rows).length, today=rows.filter(j=>isToday(j.found_at||j.published_at)).length;
     const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=Number(val||0).toLocaleString();};
-    set('statJobs',rows.length);set('statHigh',high);set('metricOpps',rows.length);if(sourceCount!==null)set('statSrc',sourceCount);if(applicationCount!==null)set('statApps',applicationCount);
+    set('statJobs',rows.length);set('statHigh',high);set('metricOpps',rows.length);
+    if(sourceCount!==null){set('statSrc',sourceCount);set('metricPages',sourceCount);}
+    if(applicationCount!==null)set('statApps',applicationCount);
+    const live=document.getElementById('metricUptime');if(live)live.textContent='LIVE';
     const donutNum=document.querySelector('.donut-center .num');if(donutNum)donutNum.textContent=rows.length.toLocaleString();
     const cards=document.querySelectorAll('.stat-card');
     if(cards[0]?.querySelector('.stat-sub'))cards[0].querySelector('.stat-sub').textContent=`▲ ${today} new today`;
     if(cards[1]?.querySelector('.stat-sub'))cards[1].querySelector('.stat-sub').textContent=`▲ ${rows.length?Math.round(high/rows.length*100):0}% of current jobs`;
     if(cards[2]?.querySelector('.stat-sub')&&sourceCount!==null)cards[2].querySelector('.stat-sub').textContent=`▲ ${sourceCount} enabled sources`;
     if(cards[3]?.querySelector('.stat-sub')&&applicationCount!==null)cards[3].querySelector('.stat-sub').textContent=`${applicationCount} total applications`;
-    if(sourceCount!==null){const scan=document.getElementById('scanCount');if(scan)scan.innerHTML=`${sourceCount}<span>/ 300</span>`;const bar=document.getElementById('scanBar');if(bar)bar.style.width=`${Math.min(100,sourceCount/300*100)}%`;}
   }
 
   function updateSectorUI() {
