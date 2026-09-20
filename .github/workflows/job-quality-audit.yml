@@ -1,0 +1,39 @@
+name: TheCareers hourly job quality audit
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '47 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/hourly-job-audit.mjs'
+      - '.github/workflows/job-quality-audit.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: thecareers-hourly-quality-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Get fresh GitHub OIDC token
+        shell: bash
+        run: |
+          RESPONSE=$(curl -fsSL -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=thecareers-supabase")
+          TOKEN=$(printf '%s' "$RESPONSE" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).value))")
+          echo "::add-mask::$TOKEN"
+          echo "GITHUB_OIDC_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+      - name: Verify all currently published jobs
+        env:
+          SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
+        run: node backend/hourly-job-audit.mjs
