@@ -239,7 +239,8 @@
       if (!isActive()) {
         if (advancedPager) { advancedPager.hidden = true; advancedPager.innerHTML = ''; }
         if (nativePager) nativePager.style.removeProperty('display');
-        rows().forEach(row => { row.style.removeProperty('display'); row.removeAttribute('aria-hidden'); });
+        /* Do not unhide rows here. The native paginator owns the normal
+           job-list visibility and enforces exactly 10 cards per page. */
         if (wasAdvancedActive) {
           wasAdvancedActive = false;
           document.dispatchEvent(new CustomEvent('tc:country-filter-change', { detail: { country: document.documentElement.dataset.tcCountryFilter || 'all', restoreFromAdvanced: true } }));
