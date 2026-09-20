@@ -118,9 +118,14 @@ Deno.serve(async (req: Request) => {
       const reason = String(body.reason || "").slice(0, 180);
       if (!id) return json({ error: "Missing job_id" }, 400);
       const now = new Date().toISOString();
+      const applicationEmail = String(body.application_email || "").trim().toLowerCase();
+      const safeApplicationEmail = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i.test(applicationEmail)
+        && !/^(?:support|privacy|legal|webmaster|admin|info|marketing|sales|press|media|dpo|dataprotection|data\.protection|security|help)@/i.test(applicationEmail)
+        ? applicationEmail
+        : null;
       const fields = state === "dead"
         ? { status: "invalid", verified: false, updated_at: now }
-        : { updated_at: now };
+        : { updated_at: now, ...(safeApplicationEmail ? { application_email: safeApplicationEmail, apply_method: "email" } : {}) };
       const { error } = await supabase.from("jobs").update(fields).eq("id", id);
       if (error) throw error;
       if (state === "dead") {
