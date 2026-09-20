@@ -105,8 +105,18 @@
     const style = document.createElement('style');
     style.id = 'tcNetFilterStyles';
     style.textContent = `
-      .tc-net-filter-layout{display:grid;grid-template-columns:224px minmax(0,1fr);gap:13px;align-items:start;padding:10px 12px 14px}
-      .tc-net-results{min-width:0}.tc-net-filter-panel{position:sticky;top:12px;background:#fff;border:1px solid #e3e7ec;border-radius:14px;box-shadow:0 8px 24px -22px rgba(18,22,28,.55);overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#20242a}
+      .tc-net-filter-layout{display:block;width:100%;padding:0}
+      .tc-net-results{min-width:0;width:100%}.tc-net-filter-panel{position:relative;background:#fff;border:1px solid #e3e7ec;border-radius:14px;box-shadow:0 8px 24px -22px rgba(18,22,28,.55);overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#20242a}
+      .sidebar .tc-net-filter-panel{width:100%;margin:16px 0 4px;flex:0 0 auto;box-shadow:0 4px 18px -18px rgba(18,22,28,.6)}
+      .sidebar .tc-net-filter-head{padding:12px 12px 10px}
+      .sidebar .tc-net-filter-head b{font-size:13px}
+      .sidebar .tc-net-filter-head small{font-size:9.5px}
+      .sidebar .tc-net-filter-body{padding:2px 12px 12px}
+      .sidebar .tc-net-filter-section{padding:10px 0}
+      .sidebar .tc-net-filter-section h3{margin-bottom:6px;font-size:11px}
+      .sidebar .tc-net-filter-option{min-height:28px;font-size:10.8px;gap:8px}
+      .sidebar .tc-net-filter-option input{width:15px;height:15px}
+      .sidebar .tc-net-filter-clear{height:36px;margin-top:8px}
       .tc-net-filter-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 14px 12px;border-bottom:1px solid #e8ebef;background:#fbfcfd}.tc-net-filter-head b{display:block;font-size:14px;font-weight:800}.tc-net-filter-head small{display:block;margin-top:2px;color:#8a919a;font-size:10px}
       .tc-net-filter-toggle{display:none;min-height:34px;padding:0 10px;border:1px solid #dce1e7;border-radius:9px;background:#fff;color:#30353c;font-size:10.5px;font-weight:800;cursor:pointer}
       .tc-net-filter-count{margin:9px 12px 0;padding:6px 8px;border-radius:9px;background:#eef8f3;color:#14764a;font-size:10px;font-weight:800;text-align:center}.tc-net-filter-count[hidden]{display:none}
@@ -114,9 +124,22 @@
       .tc-net-filter-option{display:flex;align-items:center;gap:8px;min-height:30px;color:#5c636d;font-size:11px;font-weight:600;cursor:pointer;user-select:none}.tc-net-filter-option:hover{color:#111318}.tc-net-filter-option input{width:15px;height:15px;margin:0;accent-color:#111318;flex:none}
       .tc-net-filter-clear{width:100%;height:38px;margin-top:10px;border:1px solid #dce1e7;border-radius:10px;background:#fff;color:#30353c;font-size:11px;font-weight:800;cursor:pointer}.tc-net-filter-clear:hover:not(:disabled){background:#f6f8fa;border-color:#c9d0d8}.tc-net-filter-clear:disabled{opacity:.38;cursor:default}
       .tc-advanced-pager{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;width:100%;padding:16px 8px 8px}.tc-advanced-page{min-width:38px;height:38px;padding:0 10px;border:1px solid #e0e4e9;border-radius:9px;background:#fff;color:#555c66;font:750 10.5px 'JetBrains Mono',monospace;cursor:pointer}.tc-advanced-page.active{background:#111318;color:#fff;border-color:#111318}.tc-advanced-page:disabled{opacity:.35;cursor:default}.tc-advanced-summary{width:100%;text-align:center;margin-top:3px;color:#8b919a;font-size:10px}
-      @media(max-width:1240px){.tc-net-filter-layout{grid-template-columns:1fr}.tc-net-filter-panel{position:static}.tc-net-filter-toggle{display:inline-flex;align-items:center}.tc-net-filter-body{display:none}.tc-net-filter-panel.is-open .tc-net-filter-body{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 18px}.tc-net-filter-panel.is-open .tc-net-filter-section{border-bottom:0}.tc-net-filter-panel.is-open .tc-net-filter-clear{grid-column:1/-1;max-width:220px}}
-      @media(max-width:760px){.tc-net-filter-layout{padding:8px;gap:9px}.tc-net-filter-head{padding:12px}.tc-net-filter-panel.is-open .tc-net-filter-body{grid-template-columns:1fr 1fr;padding:2px 12px 12px}.tc-net-filter-option{min-height:38px}.tc-net-filter-clear{height:44px}.tc-advanced-page{height:44px;min-width:40px}}
-      @media(max-width:430px){.tc-net-filter-panel.is-open .tc-net-filter-body{grid-template-columns:1fr}}
+      @media(min-width:761px){
+        .sidebar{overflow-y:auto!important;overscroll-behavior:contain;scrollbar-width:thin}
+        .sidebar .tc-net-filter-toggle{display:none!important}
+        .sidebar .tc-net-filter-body{display:block!important}
+      }
+      @media(max-width:760px){
+        .tc-net-filter-layout{padding:0}
+        .sidebar .tc-net-filter-panel{margin:14px 0 10px}
+        .sidebar .tc-net-filter-toggle{display:inline-flex;align-items:center}
+        .sidebar .tc-net-filter-body{display:none}
+        .sidebar .tc-net-filter-panel.is-open .tc-net-filter-body{display:block}
+        .sidebar .tc-net-filter-option{min-height:44px;font-size:13px}
+        .sidebar .tc-net-filter-option input{width:18px;height:18px}
+        .sidebar .tc-net-filter-clear{height:44px}
+        .tc-advanced-page{height:44px;min-width:40px}
+      }
     `;
     document.head.appendChild(style);
   }
@@ -261,22 +284,23 @@
     if (!jobList || document.getElementById('tcNetJobFilters')) return;
     injectStyles();
 
-    const layout = document.createElement('div');
-    layout.className = 'tc-net-filter-layout';
     const panel = document.createElement('aside');
     panel.id = 'tcNetJobFilters';
     panel.className = 'tc-net-filter-panel';
     panel.setAttribute('aria-label', 'Job filters');
-    const results = document.createElement('div');
-    results.className = 'tc-net-results';
     const advancedPager = document.createElement('nav');
     advancedPager.id = 'tcAdvancedJobsPager';
     advancedPager.className = 'tc-advanced-pager';
     advancedPager.hidden = true;
 
-    jobList.parentNode.insertBefore(layout, jobList);
-    layout.append(panel, results);
-    results.append(jobList, advancedPager);
+    const sidebar = document.querySelector('.sidebar');
+    const nav = sidebar?.querySelector('.nav');
+    if (sidebar && nav) {
+      nav.insertAdjacentElement('afterend', panel);
+    } else {
+      jobList.parentNode.insertBefore(panel, jobList);
+    }
+    jobList.insertAdjacentElement('afterend', advancedPager);
     renderPanel(false);
 
     advancedPager.addEventListener('click', event => {
