@@ -9,7 +9,7 @@ create or replace function public.search_jobs_by_role_v2(
   p_country text default 'all',
   p_filter text default 'all',
   p_sector text default '',
-  p_sort text default 'relevance'
+  p_sort text default 'newest'
 )
 returns table(
   id uuid,title text,company text,location text,country text,effective_country text,
@@ -51,7 +51,7 @@ as $function$
     )
     and (coalesce(trim(p_sector),'')='' or r.sector=p_sector)
   order by
-    case when lower(coalesce(p_sort,'relevance'))='company' then lower(coalesce(r.company,'')) end asc nulls last,
+    case when lower(coalesce(p_sort,'newest'))='company' then lower(coalesce(r.company,'')) end asc nulls last,
     case when lower(coalesce(p_sort,'relevance'))='newest' then coalesce(r.published_at,r.found_at) end desc nulls last,
     case when lower(coalesce(p_sort,'relevance'))='relevance' and coalesce(trim(p_query),'')<>'' then r.search_rank end desc nulls last,
     case when lower(coalesce(p_sort,'relevance'))='relevance' then coalesce(r.score,0) end desc,
