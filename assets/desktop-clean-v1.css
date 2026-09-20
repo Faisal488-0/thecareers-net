@@ -101,3 +101,64 @@
 }
 
 .topbar-right{margin-left:auto!important}
+
+
+/* Centered site identity in the top bar */
+.topbar{
+  position:relative!important;
+  min-height:76px!important;
+}
+.topbar-brand{
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  transform:translate(-50%,-50%)!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:3px!important;
+  text-align:center!important;
+  pointer-events:none!important;
+  max-width:44vw!important;
+  z-index:1!important;
+}
+.topbar-site-name{
+  color:#111318!important;
+  font-family:Inter,system-ui,sans-serif!important;
+  font-size:clamp(22px,2vw,30px)!important;
+  font-weight:850!important;
+  line-height:1!important;
+  letter-spacing:-.035em!important;
+  white-space:nowrap!important;
+}
+.topbar-site-title{
+  color:#7c838d!important;
+  font-family:'JetBrains Mono',monospace!important;
+  font-size:10px!important;
+  font-weight:700!important;
+  line-height:1.1!important;
+  letter-spacing:.16em!important;
+  text-transform:uppercase!important;
+  white-space:nowrap!important;
+}
+.topbar-right{
+  position:relative!important;
+  z-index:2!important;
+  margin-left:auto!important;
+}
+
+@media(min-width:761px) and (max-width:1180px){
+  .topbar-brand{max-width:36vw!important}
+  .topbar-site-name{font-size:21px!important}
+  .topbar-site-title{font-size:9px!important;letter-spacing:.11em!important}
+}
+@media(max-width:760px){
+  .topbar{min-height:64px!important}
+  .topbar-brand{
+    left:50%!important;
+    max-width:36vw!important;
+  }
+  .topbar-site-name{font-size:17px!important}
+  .topbar-site-title{display:none!important}
+}
