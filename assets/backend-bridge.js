@@ -362,6 +362,6 @@
 (() => {
   if (document.querySelector('script[data-tc-controls-3d]')) return;
   const s=document.createElement('script');s.dataset.tcControls3d='1';
-  const base=document.currentScript?.src||location.href;s.src=new URL('./controls-3d.js?v=20260920-uiux2',base).href;s.defer=true;
+  const base=document.currentScript?.src||location.href;s.src=new URL('./controls-3d.js?v=20260920-uiux3',base).href;s.defer=true;
   s.addEventListener('error',()=>console.error('[TheCareers] 3D controls failed to load'));document.head.appendChild(s);
 })();
