@@ -294,7 +294,34 @@
     const body=await res.json().catch(()=>({}));if(!res.ok)throw new Error(body.error||`Search Now failed (${res.status})`);return body;
   }
 
-  document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();activeTab=tab.dataset.tab||'all';updateTabCounts();renderJobs();},true));
+  function activateJobTab(tab){
+    const mode=tab?.dataset?.tab||'all';
+    activeTab=mode;
+    document.querySelectorAll('.tab[data-tab]').forEach(t=>{
+      const on=t===tab;
+      t.classList.toggle('active',on);
+      t.setAttribute('aria-pressed',on?'true':'false');
+      t.setAttribute('aria-selected',on?'true':'false');
+      t.tabIndex=on?0:-1;
+    });
+    updateTabCounts();
+    renderJobs();
+    document.dispatchEvent(new CustomEvent('tc:job-tab-change',{detail:{tab:mode}}));
+  }
+
+  document.querySelectorAll('.tab[data-tab]').forEach(tab=>{
+    tab.setAttribute('role','tab');
+    tab.addEventListener('click',e=>{
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      activateJobTab(tab);
+    },true);
+    tab.addEventListener('keydown',e=>{
+      if(e.key!=='Enter'&&e.key!==' ')return;
+      e.preventDefault();
+      tab.click();
+    });
+  });
 
   const sortCtl=document.querySelector('.select-like');
   if(sortCtl){const modes=[['relevance','Relevance'],['newest','Newest'],['company','Company']];let i=0;sortCtl.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();i=(i+1)%modes.length;sortMode=modes[i][0];sortCtl.textContent=`Sort by: ${modes[i][1]}`;loadJobs().catch(err=>console.error('[TheCareers] sort',err));},true);}
