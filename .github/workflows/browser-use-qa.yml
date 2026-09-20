@@ -73,9 +73,9 @@ jobs:
             const pass=failed===0&&critical===0;
             const body={
               action:'event',
-              message:`Browser QA ${pass?'PASS':'FAIL'} — assertions ${failed}, critical ${critical}`,
+              message:`Browser QA ${pass?'PASS':'FAIL'} — run ${process.env.GITHUB_RUN_ID||'unknown'} — assertions ${failed}, critical ${critical}`,
               level:pass?'ok':'warning',
-              meta:{via:'github_browser_qa',failed_assertions:failed,critical_browser_failures:critical,target:report?.target||process.env.TARGET_URL||'',generated_at:report?.generatedAt||null}
+              meta:{via:'github_browser_qa',github_run_id:process.env.GITHUB_RUN_ID||null,github_sha:process.env.GITHUB_SHA||null,failed_assertions:failed,critical_browser_failures:critical,target:report?.target||process.env.TARGET_URL||'',generated_at:report?.generatedAt||null,fatal:Boolean(report?.fatal),error:report?.error||null}
             };
             const r=await fetch(process.env.SUPABASE_GITHUB_BRIDGE_URL,{method:'POST',headers:{Authorization:'Bearer '+tj.value,'Content-Type':'application/json'},body:JSON.stringify(body)});
             if(!r.ok)throw new Error(await r.text());
