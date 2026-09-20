@@ -29,7 +29,7 @@ function clean(v){return String(v||'').replace(/\s+/g,' ').trim();}
 async function inspect(job){
   const url=clean(job?.url);if(!/^https?:\/\//i.test(url))return {state:'dead',reason:'invalid_url'};
   try{
-    const r=await fetch(url,{redirect:'follow',headers:{'user-agent':USER_AGENT,'accept':'text/html,application/xhtml+xml;q=0.9,*/*;q=0.5'},signal:AbortSignal.timeout(12000)});
+    const r=await fetch(url,{redirect:'follow',headers:{'user-agent':USER_AGENT,'accept':'text/html,application/xhtml+xml;q=0.9,*/*;q=0.5'},signal:AbortSignal.timeout(7000)});
     if(r.status===404||r.status===410)return {state:'dead',reason:`http_${r.status}`};
     if(r.status===401||r.status===403||r.status===429||r.status>=500)return {state:'unknown',reason:`http_${r.status}`};
     if(!r.ok)return {state:'unknown',reason:`http_${r.status}`};
@@ -43,11 +43,11 @@ async function inspect(job){
   }
 }
 await refreshOidcToken();
-const reply=await bridge('list_jobs_for_audit',{limit:80});
+const reply=await bridge('list_jobs_for_audit',{limit:600});
 const jobs=reply.data||[];
 let alive=0,dead=0,unknown=0;
-for(let i=0;i<jobs.length;i+=6){
-  const batch=jobs.slice(i,i+6);
+for(let i=0;i<jobs.length;i+=20){
+  const batch=jobs.slice(i,i+20);
   const checked=await Promise.all(batch.map(async job=>({job,result:await inspect(job)})));
   for(const {job,result} of checked){
     if(result.state==='alive')alive++;else if(result.state==='dead')dead++;else unknown++;
