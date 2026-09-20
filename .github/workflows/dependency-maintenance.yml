@@ -1,0 +1,124 @@
+name: Dependency Maintenance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - package.json
+      - package-lock.json
+      - npm-shrinkwrap.json
+      - bun.lock
+      - bun.lockb
+      - pnpm-lock.yaml
+      - yarn.lock
+      - .github/workflows/dependency-maintenance.yml
+  pull_request:
+    paths:
+      - package.json
+      - package-lock.json
+      - npm-shrinkwrap.json
+      - bun.lock
+      - bun.lockb
+      - pnpm-lock.yaml
+      - yarn.lock
+      - .github/workflows/dependency-maintenance.yml
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 1 * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dependency-maintenance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Detect lockfile strategy
+        id: lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f package-lock.json || -f npm-shrinkwrap.json ]]; then
+            echo "mode=npm" >> "$GITHUB_OUTPUT"
+            echo "missing=false" >> "$GITHUB_OUTPUT"
+          elif [[ -f bun.lock || -f bun.lockb || -f pnpm-lock.yaml || -f yarn.lock ]]; then
+            echo "mode=other" >> "$GITHUB_OUTPUT"
+            echo "missing=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=npm" >> "$GITHUB_OUTPUT"
+            echo "missing=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create missing npm lockfile
+        if: steps.lock.outputs.mode == 'npm' && steps.lock.outputs.missing == 'true'
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Apply safe npm audit fixes
+        if: steps.lock.outputs.mode == 'npm'
+        continue-on-error: true
+        run: npm audit fix --package-lock-only --ignore-scripts --no-fund
+
+      - name: Verify npm lockfile is installable
+        if: steps.lock.outputs.mode == 'npm'
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Audit npm dependencies
+        id: npm_audit
+        if: steps.lock.outputs.mode == 'npm'
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Audit manifest for non-npm lockfiles
+        id: manifest_audit
+        if: steps.lock.outputs.mode == 'other'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          audit_dir="$RUNNER_TEMP/npm-manifest-audit"
+          mkdir -p "$audit_dir"
+          cp package.json "$audit_dir/package.json"
+          cd "$audit_dir"
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm audit --omit=dev --audit-level=high
+
+      - name: Commit safe npm lockfile changes
+        if: github.event_name != 'pull_request' && steps.lock.outputs.mode == 'npm'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- package-lock.json npm-shrinkwrap.json 2>/dev/null && git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
+            echo "No lockfile changes to commit."
+            exit 0
+          fi
+          if [[ -f package-lock.json ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            if ! git diff --cached --quiet; then
+              git commit -m "chore: maintain dependency lockfile [skip ci]"
+              git push
+            fi
+          fi
+
+      - name: Enforce high severity threshold
+        shell: bash
+        run: |
+          if [[ "${{ steps.npm_audit.outcome }}" == "failure" || "${{ steps.manifest_audit.outcome }}" == "failure" ]]; then
+            echo "High or critical dependency vulnerabilities remain. Review the audit output; no force update was used."
+            exit 1
+          fi
+          echo "Dependency audit passed without remaining high/critical findings."
