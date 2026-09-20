@@ -34,6 +34,27 @@ async function inspectPage(browser, mode, viewport) {
 
   await page.locator('.backend-job').first().waitFor({state:'attached',timeout:20000}).catch(()=>{});
   const cards=await page.locator('.backend-job').count(); assert(assertions,'Live job cards loaded',cards>0,`${cards} cards in DOM`);
+  const visibleInitial=await page.locator('.backend-job:visible').count();
+  assert(assertions,'Exactly 10 or fewer job cards visible per page',visibleInitial>0&&visibleInitial<=10,`${visibleInitial} visible cards`);
+  if(cards>10) assert(assertions,'Normal job page is capped at 10 cards',visibleInitial===10,`${visibleInitial} visible of ${cards} DOM cards`);
+
+  const tabs=page.locator('.row-opps .tab[data-tab]');
+  assert(assertions,'Four opportunity tabs available',await tabs.count()===4,`${await tabs.count()} tabs`);
+  const activeTabs=page.locator('.row-opps .tab.active[aria-pressed="true"]');
+  assert(assertions,'Exactly one opportunity tab is selected',await activeTabs.count()===1,`${await activeTabs.count()} selected`);
+
+  const filterPanel=page.locator('#tcNetJobFilters');
+  assert(assertions,'Job filters panel exists',await filterPanel.count()===1);
+  if(mode==='desktop'){
+    assert(assertions,'Job filters are in left sidebar',await page.locator('.sidebar #tcNetJobFilters').count()===1);
+    assert(assertions,'Live metric cards moved above filters',await page.locator('.sidebar .tc-sidebar-stats .stat-card').count()===4,`${await page.locator('.sidebar .tc-sidebar-stats .stat-card').count()} cards`);
+    assert(assertions,'Sidebar has Dashboard and CV Centre only',await page.locator('.sidebar .nav-item').count()===2,await page.locator('.sidebar .nav-item').allTextContents().catch(()=>[]));
+    assert(assertions,'Settings removed from sidebar',await page.locator('.sidebar .nav-item[data-page="settings"]').count()===0);
+  }
+
+  assert(assertions,'Top slogan removed',await page.locator('.topbar-left').count()===0);
+  assert(assertions,'Sources Scanning panel removed',await page.locator('.sources-scan').count()===0);
+
   if(cards>0){
     const first=page.locator('.backend-job').first();
     const titleLoc=first.locator('.title,[data-job-title],h3,h4').first();
@@ -46,6 +67,59 @@ async function inspectPage(browser, mode, viewport) {
   }
 
   if(mode==='desktop'){
+    const allTab=page.locator('.tab[data-tab="all"]');
+    const newTab=page.locator('.tab[data-tab="new"]');
+    const savedTab=page.locator('.tab[data-tab="saved"]');
+    const highTab=page.locator('.tab[data-tab="high"]');
+
+    await allTab.click(); await page.waitForTimeout(350);
+    assert(assertions,'All Jobs tab activates',await allTab.getAttribute('aria-pressed')==='true');
+    let visible=await page.locator('.backend-job:visible').count();
+    assert(assertions,'All Jobs keeps 10-card page cap',visible>0&&visible<=10,`${visible} visible`);
+
+    await newTab.click(); await page.waitForTimeout(300);
+    assert(assertions,'New Today tab activates',await newTab.getAttribute('aria-pressed')==='true');
+    visible=await page.locator('.backend-job:visible').count();
+    assert(assertions,'New Today keeps 10-card page cap',visible<=10,`${visible} visible`);
+
+    await allTab.click(); await page.waitForTimeout(300);
+    const saveFirst=page.locator('.backend-job:visible .tc-save-job').first();
+    if(await saveFirst.count()){
+      await saveFirst.click(); await page.waitForTimeout(250);
+      await savedTab.click(); await page.waitForTimeout(350);
+      assert(assertions,'Saved tab activates',await savedTab.getAttribute('aria-pressed')==='true');
+      const savedVisible=await page.locator('.backend-job:visible').count();
+      assert(assertions,'Saved tab shows saved result',savedVisible>=1&&savedVisible<=10,`${savedVisible} visible`);
+      const undo=page.locator('.backend-job:visible .tc-save-job').first(); if(await undo.count()) await undo.click().catch(()=>{});
+      await allTab.click(); await page.waitForTimeout(250);
+    }
+
+    await highTab.click(); await page.waitForTimeout(450);
+    const highActive=await highTab.getAttribute('aria-pressed')==='true';
+    const authSurface=await page.locator('.tc-modal-backdrop,#tcAuthForm,[role="dialog"]').count();
+    assert(assertions,'High Match either activates personalized view or requests account/CV',highActive||authSurface>0,`active=${highActive} authSurface=${authSurface}`);
+    if(authSurface>0){
+      await page.waitForTimeout(250);
+      assert(assertions,'Password recovery control available on sign-in',await page.locator('.tc-forgot-password').count()===1);
+      await page.keyboard.press('Escape').catch(()=>{});
+      await page.waitForTimeout(150);
+    }
+
+    const cvNav=page.locator('.nav-item[data-page="cv"]');
+    if(await cvNav.count()){
+      await cvNav.click(); await page.waitForTimeout(350);
+      const cvSurface=await page.locator('.tc-modal-backdrop,[role="dialog"]').count();
+      assert(assertions,'CV Centre opens account/CV surface',cvSurface>0,`surfaces=${cvSurface}`);
+      await page.keyboard.press('Escape').catch(()=>{});
+    }
+
+    await page.waitForTimeout(500);
+    const emailLinks=await page.locator('.tc-apply-method a[href^="mailto:"]').count();
+    assert(assertions,'Direct-email apply opportunities are surfaced when present',emailLinks>0,`${emailLinks} email apply links`);
+
+    const searchNow=page.locator('#searchNowBtn');
+    assert(assertions,'Search Now is present and operable',await searchNow.count()===1&&!await searchNow.isDisabled().catch(()=>true));
+
     const search=page.locator('#tcJobTitleSearch'); await search.fill('hr'); await page.waitForFunction(()=>{const t=document.querySelector('#tcJobSearchMeta')?.textContent||'';return t&&!/SEARCHING BACKEND/i.test(t);},{timeout:10000}).catch(()=>{}); await page.waitForTimeout(500);
     const searchMeta=await text(page.locator('#tcJobSearchMeta')); assert(assertions,'Backend role search returns status',/RELATED ROLE|BACKEND READY/i.test(searchMeta),searchMeta);
     const visibleTitles=(await page.locator('.backend-job:visible .title,.backend-job:visible [data-job-title],.backend-job:visible h3,.backend-job:visible h4').allTextContents()).map(clean).filter(Boolean);
@@ -60,6 +134,27 @@ async function inspectPage(browser, mode, viewport) {
   }
 
   if(mode==='mobile'){
+    const menu=page.locator('#tc-mobile-menu-btn');
+    assert(assertions,'Mobile navigation button exists',await menu.count()===1);
+    if(await menu.count()){
+      await menu.click(); await page.waitForTimeout(180);
+      assert(assertions,'Mobile sidebar opens',await page.locator('body.tc-mobile-nav-open').count()===1);
+      assert(assertions,'Mobile CV Centre is reachable',await page.locator('.sidebar .nav-item[data-page="cv"]').count()===1);
+      const filterToggle=page.locator('.sidebar .tc-net-filter-toggle');
+      if(await filterToggle.count()){
+        const box=await filterToggle.boundingBox();
+        assert(assertions,'Mobile filter control meets touch size',Boolean(box&&box.height>=44),box?`${Math.round(box.width)}x${Math.round(box.height)}`:'missing');
+      }
+      await page.locator('.tc-mobile-sidebar-close').click().catch(()=>{});
+    }
+    const mobileTabs=page.locator('.row-opps .tab[data-tab]');
+    if(await mobileTabs.count()){
+      const box=await mobileTabs.first().boundingBox();
+      assert(assertions,'Mobile job tabs meet touch height',Boolean(box&&box.height>=44),box?`${Math.round(box.width)}x${Math.round(box.height)}`:'missing');
+    }
+    const mobileVisible=await page.locator('.backend-job:visible').count();
+    assert(assertions,'Mobile job page capped at 10 cards',mobileVisible>0&&mobileVisible<=10,`${mobileVisible} visible`);
+
     const before=await page.evaluate(()=>scrollY); await page.evaluate(()=>scrollTo(0,Math.min(600,document.body.scrollHeight))); await page.waitForTimeout(250); const after=await page.evaluate(()=>scrollY); assert(assertions,'Mobile page scroll works',after>before,`${before} -> ${after}`);
     const globe=page.locator('#thecareers-globe-stage,#thecareers-ai-globe').first(); if(await globe.count()){ const pe=await globe.evaluate(el=>getComputedStyle(el).pointerEvents); assert(assertions,'Mobile globe does not trap page touch',pe==='none'||pe==='auto',`pointer-events=${pe}`); }
   }
