@@ -11,6 +11,11 @@
   const SESSION_KEY = 'thecareers_auth_session_v1';
   const MAX_CV = 10 * 1024 * 1024;
   const allowedExt = new Set(['pdf','docx','txt']);
+  const allowedMime = {
+    pdf: new Set(['application/pdf']),
+    docx: new Set(['application/vnd.openxmlformats-officedocument.wordprocessingml.document']),
+    txt: new Set(['text/plain'])
+  };
   const countries = ['Kuwait','Saudi Arabia','United Arab Emirates','Qatar','Bahrain','Oman'];
   let lastRetry = null;
 
@@ -230,11 +235,37 @@
     }
   }
 
+  async function validateFileContent(file,ext){
+    const declared=String(file.type||'').toLowerCase();
+    if(declared && allowedMime[ext] && !allowedMime[ext].has(declared)){
+      throw new Error('File type does not match its extension.');
+    }
+    const head=new Uint8Array(await file.slice(0,8192).arrayBuffer());
+    if(ext==='pdf'){
+      const sig=new TextDecoder('latin1').decode(head.slice(0,1024));
+      if(!sig.includes('%PDF-'))throw new Error('This file is not a valid PDF.');
+      return true;
+    }
+    if(ext==='docx'){
+      if(head.length<4 || head[0]!==0x50 || head[1]!==0x4b || !((head[2]===0x03&&head[3]===0x04)||(head[2]===0x05&&head[3]===0x06)||(head[2]===0x07&&head[3]===0x08))){
+        throw new Error('This file is not a valid DOCX/ZIP document.');
+      }
+      return true;
+    }
+    if(ext==='txt'){
+      if(head.some(byte=>byte===0))throw new Error('TXT file appears to contain binary data.');
+      try{new TextDecoder('utf-8',{fatal:true}).decode(head);}catch{throw new Error('TXT file must be UTF-8 text.');}
+      return true;
+    }
+    throw new Error('Use PDF, DOCX or TXT.');
+  }
+
   async function fastUpload(file,ui){
     if(!base||!apiKey)throw new Error('CV service is not configured.');
     if(file.size>MAX_CV)throw new Error('CV is too large. Maximum size is 10 MB.');
     const ext=(file.name.split('.').pop()||'').toLowerCase();
     if(!allowedExt.has(ext))throw new Error('Use PDF, DOCX or TXT.');
+    await validateFileContent(file,ext);
 
     try{await window.TheCareersAuth?.refresh?.();}catch{}
     const session=sessionLoad();
