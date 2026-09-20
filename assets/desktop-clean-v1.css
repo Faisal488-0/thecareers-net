@@ -1,7 +1,6 @@
-/* TheCareers Desktop Clean V2 — redesigned interface authority. */
-/* Legacy sidebar/navigation is retained in HTML only for rollback safety, never rendered. */
-.sidebar{display:none!important}
-.app{grid-template-columns:minmax(0,1fr)!important;width:100%!important}
+/* TheCareers Desktop Clean V3 — restore original navigation without reverting newer job features. */
+.sidebar{display:flex!important}
+.app{grid-template-columns:240px minmax(0,1fr)!important;width:100%!important}
 @media (min-width:761px){
  html,body{max-width:100%;overflow-x:hidden!important}
  .main,.content,.row-core,.panel,.core-body,.topbar,.topbar-right{min-width:0!important}
@@ -21,4 +20,8 @@
  .activity-row .m{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
  .panel,.job-row,.source-chip{contain:layout paint}
 }
+@media (min-width:761px) and (max-width:1180px){
+ .topbar-left{display:none!important}.status-chip{display:none!important}.row-core{grid-template-columns:1fr!important}.core-visual.thecareers-globe-zone{grid-template-columns:minmax(130px,1fr) minmax(300px,38vw) minmax(130px,1fr)!important}.thecareers-globe-zone #thecareers-globe-stage{width:clamp(300px,38vw,460px)!important}
+}
+@media (max-width:760px){.app{grid-template-columns:minmax(0,1fr)!important}.sidebar{display:flex!important}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
