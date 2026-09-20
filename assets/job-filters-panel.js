@@ -107,7 +107,15 @@
     style.textContent = `
       .tc-net-filter-layout{display:block;width:100%;padding:0}
       .tc-net-results{min-width:0;width:100%}.tc-net-filter-panel{position:relative;background:#fff;border:1px solid #e3e7ec;border-radius:14px;box-shadow:0 8px 24px -22px rgba(18,22,28,.55);overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#20242a}
-      .sidebar .tc-net-filter-panel{width:100%;margin:16px 0 4px;flex:0 0 auto;box-shadow:0 4px 18px -18px rgba(18,22,28,.6);scroll-margin-top:16px}
+      .sidebar .tc-sidebar-stats{display:flex!important;flex-direction:column!important;width:100%!important;gap:9px!important;margin:14px 0 0!important}
+      .sidebar .tc-sidebar-stats .stat-card{width:100%!important;min-width:0!important;min-height:104px!important;padding:12px 12px 10px!important;border-radius:13px!important;box-shadow:0 4px 16px -16px rgba(20,22,26,.45)!important}
+      .sidebar .tc-sidebar-stats .stat-top{gap:8px!important;margin-bottom:7px!important}
+      .sidebar .tc-sidebar-stats .stat-ic{width:26px!important;height:26px!important;min-width:26px!important;border-radius:8px!important}
+      .sidebar .tc-sidebar-stats .stat-title{font-size:10.5px!important;line-height:1.2!important}
+      .sidebar .tc-sidebar-stats .stat-num{font-size:22px!important;line-height:1!important;margin:0!important}
+      .sidebar .tc-sidebar-stats .stat-sub{font-size:9px!important;line-height:1.25!important;margin-top:5px!important}
+      .sidebar .tc-sidebar-stats .stat-spark{width:100%!important;height:18px!important;margin-top:6px!important}
+      .sidebar .tc-net-filter-panel{width:100%;margin:12px 0 4px;flex:0 0 auto;box-shadow:0 4px 18px -18px rgba(18,22,28,.6);scroll-margin-top:16px}
       .sidebar .tc-net-filter-head{padding:12px 12px 10px}
       .sidebar .tc-net-filter-head b{font-size:13px}
       .sidebar .tc-net-filter-head small{font-size:9.5px}
@@ -144,6 +152,8 @@
       }
       @media(max-width:760px){
         .tc-net-filter-layout{padding:0}
+        .content .stat-row{display:grid!important}
+        .sidebar .tc-sidebar-stats{display:none!important}
         .sidebar .tc-net-filter-panel{margin:14px 0 10px}
         .sidebar .tc-net-filter-toggle{display:inline-flex;align-items:center}
         .sidebar .tc-net-filter-body{display:none}
@@ -294,6 +304,32 @@
     };
   }
 
+  let statsHome = null;
+
+  function placeStatsForViewport() {
+    const statRow = document.querySelector('.stat-row');
+    const sidebar = document.querySelector('.sidebar');
+    const nav = sidebar?.querySelector('.nav');
+    const panel = document.getElementById('tcNetJobFilters');
+    if (!statRow || !sidebar || !nav || !panel) return;
+
+    if (!statsHome) {
+      statsHome = document.createComment('tc-stat-row-home');
+      statRow.parentNode?.insertBefore(statsHome, statRow);
+    }
+
+    if (matchMedia('(max-width:760px)').matches) {
+      statRow.classList.remove('tc-sidebar-stats');
+      if (statsHome.parentNode) statsHome.parentNode.insertBefore(statRow, statsHome.nextSibling);
+      panel.style.removeProperty('margin-top');
+      return;
+    }
+
+    statRow.classList.add('tc-sidebar-stats');
+    nav.insertAdjacentElement('afterend', statRow);
+    statRow.insertAdjacentElement('afterend', panel);
+  }
+
   function alignFilterWithJobs() {
     const panel = document.getElementById('tcNetJobFilters');
     const sidebar = document.querySelector('.sidebar');
@@ -305,12 +341,11 @@
       panel.style.removeProperty('--tc-filter-align-gap');
       return;
     }
-    const sidebarRect = sidebar.getBoundingClientRect();
     const navRect = nav.getBoundingClientRect();
     const jobsRect = jobsPanel.getBoundingClientRect();
-    const naturalTop = navRect.bottom + 16;
-    const desiredTop = Math.max(naturalTop, jobsRect.top);
-    const gap = Math.max(16, Math.round(desiredTop - navRect.bottom));
+    const stats = sidebar.querySelector('.tc-sidebar-stats');
+    const statsBottom = stats?.getBoundingClientRect().bottom || navRect.bottom;
+    const gap = Math.max(12, Math.round(jobsRect.top - statsBottom));
     panel.style.setProperty('margin-top', gap + 'px', 'important');
     panel.style.setProperty('--tc-filter-align-gap', gap + 'px');
   }
@@ -338,8 +373,12 @@
     }
     jobList.insertAdjacentElement('afterend', advancedPager);
     renderPanel(false);
+    placeStatsForViewport();
     requestAnimationFrame(() => requestAnimationFrame(alignFilterWithJobs));
-    addEventListener('resize', () => requestAnimationFrame(alignFilterWithJobs), { passive: true });
+    addEventListener('resize', () => {
+      placeStatsForViewport();
+      requestAnimationFrame(alignFilterWithJobs);
+    }, { passive: true });
 
     advancedPager.addEventListener('click', event => {
       const btn = event.target.closest('.tc-advanced-page');
@@ -355,7 +394,7 @@
     const observer = new MutationObserver(() => { if (!applying && isActive()) setTimeout(scheduleApply, 20); });
     observer.observe(jobList, { childList: true });
     document.addEventListener('tc:country-filter-change', event => { if (event.detail?.restoreFromAdvanced) return; page = 1; setTimeout(scheduleApply, 80); });
-    document.addEventListener('tc:job-search-results', () => { page = 1; setTimeout(scheduleApply, 80); setTimeout(alignFilterWithJobs, 90); });
+    document.addEventListener('tc:job-search-results', () => { page = 1; setTimeout(scheduleApply, 80); setTimeout(()=>{placeStatsForViewport();alignFilterWithJobs();}, 90); });
     document.querySelectorAll('.tab,.filter-btn,.select-like,.source-chip,.leg-row[data-sector],.net-node').forEach(el => el.addEventListener('click', () => { page = 1; setTimeout(scheduleApply, 100); }, true));
 
     scheduleApply();
