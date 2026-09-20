@@ -19,6 +19,30 @@ async function bridge(action,payload={}){
   const text=await r.text();let b;try{b=text?JSON.parse(text):{}}catch{b={error:text}}
   if(!r.ok||b?.error)throw new Error(String(b?.error||`${r.status} ${text.slice(0,300)}`));return b;
 }
+function safeEmail(v){
+  const e=String(v||'').replace(/^mailto:/i,'').split(/[?&#]/)[0].trim().toLowerCase();
+  if(!/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i.test(e))return null;
+  if(/^(?:support|privacy|legal|webmaster|admin|info|marketing|sales|press|media|dpo|dataprotection|data\.protection|security|help)@/i.test(e))return null;
+  return e;
+}
+function extractApplicationEmailFromHtml(html){
+  const raw=String(html||'');
+  const candidates=[];
+  const mailRe=/mailto:([^"'<>?\s]+)/ig;
+  for(const m of raw.matchAll(mailRe))candidates.push({email:m[1],index:m.index||0});
+  const text=raw.replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/gi,' ');
+  const emailRe=/[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+/ig;
+  for(const m of text.matchAll(emailRe))candidates.push({email:m[0],index:m.index||0,text:true});
+  for(const x of candidates){
+    const email=safeEmail(x.email);if(!email)continue;
+    const hay=x.text?text:raw,i=Math.max(0,Math.min(x.index,hay.length));
+    const ctx=hay.slice(Math.max(0,i-180),Math.min(hay.length,i+email.length+180));
+    if(/\b(?:apply|application|send\s+(?:your\s+)?(?:cv|resume)|submit\s+(?:your\s+)?(?:cv|resume)|cv|résumé|resume|recruit(?:ment|er)?|hiring|vacanc(?:y|ies)|job\s+application|careers?)\b/i.test(ctx)
+       && !/\b(?:privacy|legal|cookie|customer\s+service|press|media\s+enquiries|data\s+protection)\b/i.test(ctx)) return email;
+  }
+  return null;
+}
+
 const DEAD_PATTERNS=[
   /job (?:is )?no longer available/i,/position (?:has been|is) filled/i,/vacancy (?:is )?closed/i,
   /job (?:has been )?closed/i,/applications? (?:are )?closed/i,/application deadline has passed/i,
@@ -35,9 +59,11 @@ async function inspect(job){
     if(!r.ok)return {state:'unknown',reason:`http_${r.status}`};
     const type=(r.headers.get('content-type')||'').toLowerCase();
     if(!type.includes('text/html'))return {state:'alive',reason:'reachable'};
-    const html=(await r.text()).slice(0,350000).replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
-    if(DEAD_PATTERNS.some(re=>re.test(html)))return {state:'dead',reason:'explicit_closed_message'};
-    return {state:'alive',reason:'reachable'};
+    const rawHtml=(await r.text()).slice(0,500000);
+    const applicationEmail=extractApplicationEmailFromHtml(rawHtml);
+    const html=rawHtml.replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+    if(DEAD_PATTERNS.some(re=>re.test(html)))return {state:'dead',reason:'explicit_closed_message',applicationEmail};
+    return {state:'alive',reason:'reachable',applicationEmail};
   }catch(e){
     return {state:'unknown',reason:/timeout|abort/i.test(String(e))?'timeout':'network_error'};
   }
@@ -51,7 +77,7 @@ for(let i=0;i<jobs.length;i+=20){
   const checked=await Promise.all(batch.map(async job=>({job,result:await inspect(job)})));
   for(const {job,result} of checked){
     if(result.state==='alive')alive++;else if(result.state==='dead')dead++;else unknown++;
-    await bridge('audit_job',{job_id:job.id,state:result.state,reason:result.reason});
+    await bridge('audit_job',{job_id:job.id,state:result.state,reason:result.reason,application_email:result.applicationEmail||null});
   }
 }
 await bridge('event',{message:`Hourly quality audit — checked ${jobs.length}, active ${alive}, removed ${dead}, inconclusive ${unknown}`,level:dead?'warning':'ok',meta:{checked:jobs.length,alive,dead,unknown}});
