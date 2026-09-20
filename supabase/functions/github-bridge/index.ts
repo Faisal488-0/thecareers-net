@@ -101,7 +101,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "list_jobs_for_audit") {
-      const limit = Math.max(1, Math.min(Number(body.limit || 80), 200));
+      const limit = Math.max(1, Math.min(Number(body.limit || 600), 600));
       const { data, error } = await supabase.from("jobs")
         .select("id,title,company,location,url,verified,status,published_at,found_at,updated_at")
         .eq("status", "active")
