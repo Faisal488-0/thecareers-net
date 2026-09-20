@@ -14,12 +14,14 @@ on:
       - 'config.js'
       - 'assets/**'
       - 'qa/free-browser-qa.cjs'
+      - '.github/workflows/browser-use-qa.yml'
   schedule:
     # Weekly is enough for a background browser audit; push/manual runs remain available.
     - cron: '17 1 * * 0'
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: thecareers-browser-qa
@@ -49,6 +51,37 @@ jobs:
 
       - name: Audit TheCareers in local Chromium
         run: node qa/free-browser-qa.cjs
+
+      - name: Publish QA result to TheCareers audit log
+        if: always()
+        shell: bash
+        env:
+          SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          async function main(){
+            let report={summary:{failedAssertions:999,criticalBrowserFailures:999}};
+            try{report=JSON.parse(fs.readFileSync('qa/free-browser-output/report.json','utf8'))}catch{}
+            const req=process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+            const auth=process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+            const sep=req.includes('?')?'&':'?';
+            const tr=await fetch(req+sep+'audience=thecareers-supabase',{headers:{Authorization:'Bearer '+auth}});
+            const tj=await tr.json();
+            const failed=Number(report?.summary?.failedAssertions||0);
+            const critical=Number(report?.summary?.criticalBrowserFailures||0);
+            const pass=failed===0&&critical===0;
+            const body={
+              action:'event',
+              message:`Browser QA ${pass?'PASS':'FAIL'} — assertions ${failed}, critical ${critical}`,
+              level:pass?'ok':'warning',
+              meta:{via:'github_browser_qa',failed_assertions:failed,critical_browser_failures:critical,target:report?.target||process.env.TARGET_URL||'',generated_at:report?.generatedAt||null}
+            };
+            const r=await fetch(process.env.SUPABASE_GITHUB_BRIDGE_URL,{method:'POST',headers:{Authorization:'Bearer '+tj.value,'Content-Type':'application/json'},body:JSON.stringify(body)});
+            if(!r.ok)throw new Error(await r.text());
+          }
+          main().catch(e=>{console.error(e);process.exitCode=1});
+          NODE
 
       - name: Upload QA evidence
         if: always()
