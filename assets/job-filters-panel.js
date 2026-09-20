@@ -107,7 +107,7 @@
     style.textContent = `
       .tc-net-filter-layout{display:block;width:100%;padding:0}
       .tc-net-results{min-width:0;width:100%}.tc-net-filter-panel{position:relative;background:#fff;border:1px solid #e3e7ec;border-radius:14px;box-shadow:0 8px 24px -22px rgba(18,22,28,.55);overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#20242a}
-      .sidebar .tc-net-filter-panel{width:100%;margin:16px 0 4px;flex:0 0 auto;box-shadow:0 4px 18px -18px rgba(18,22,28,.6)}
+      .sidebar .tc-net-filter-panel{width:100%;margin:16px 0 4px;flex:0 0 auto;box-shadow:0 4px 18px -18px rgba(18,22,28,.6);scroll-margin-top:16px}
       .sidebar .tc-net-filter-head{padding:12px 12px 10px}
       .sidebar .tc-net-filter-head b{font-size:13px}
       .sidebar .tc-net-filter-head small{font-size:9.5px}
@@ -126,6 +126,7 @@
       .tc-advanced-pager{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;width:100%;padding:16px 8px 8px}.tc-advanced-page{min-width:38px;height:38px;padding:0 10px;border:1px solid #e0e4e9;border-radius:9px;background:#fff;color:#555c66;font:750 10.5px 'JetBrains Mono',monospace;cursor:pointer}.tc-advanced-page.active{background:#111318;color:#fff;border-color:#111318}.tc-advanced-page:disabled{opacity:.35;cursor:default}.tc-advanced-summary{width:100%;text-align:center;margin-top:3px;color:#8b919a;font-size:10px}
       @media(min-width:761px){
         .sidebar{overflow-y:auto!important;overscroll-behavior:contain;scrollbar-width:thin}
+        .sidebar .tc-net-filter-panel{max-height:calc(100vh - 24px);overflow:auto}
         .sidebar .tc-net-filter-toggle{display:none!important}
         .sidebar .tc-net-filter-body{display:block!important}
       }
@@ -251,6 +252,8 @@
     page = 1;
     renderPanel(true);
     scheduleApply();
+    setTimeout(alignFilterWithJobs, 150);
+    setTimeout(alignFilterWithJobs, 700);
   }
 
   function bindPanel(panel) {
@@ -279,6 +282,27 @@
     };
   }
 
+  function alignFilterWithJobs() {
+    const panel = document.getElementById('tcNetJobFilters');
+    const sidebar = document.querySelector('.sidebar');
+    const nav = sidebar?.querySelector('.nav');
+    const jobsPanel = document.querySelector('.row-opps > .panel:first-child');
+    if (!panel || !sidebar || !nav || !jobsPanel) return;
+    if (matchMedia('(max-width:760px)').matches) {
+      panel.style.removeProperty('margin-top');
+      panel.style.removeProperty('--tc-filter-align-gap');
+      return;
+    }
+    const sidebarRect = sidebar.getBoundingClientRect();
+    const navRect = nav.getBoundingClientRect();
+    const jobsRect = jobsPanel.getBoundingClientRect();
+    const naturalTop = navRect.bottom + 16;
+    const desiredTop = Math.max(naturalTop, jobsRect.top);
+    const gap = Math.max(16, Math.round(desiredTop - navRect.bottom));
+    panel.style.setProperty('margin-top', gap + 'px', 'important');
+    panel.style.setProperty('--tc-filter-align-gap', gap + 'px');
+  }
+
   function mount() {
     const jobList = list();
     if (!jobList || document.getElementById('tcNetJobFilters')) return;
@@ -302,6 +326,8 @@
     }
     jobList.insertAdjacentElement('afterend', advancedPager);
     renderPanel(false);
+    requestAnimationFrame(() => requestAnimationFrame(alignFilterWithJobs));
+    addEventListener('resize', () => requestAnimationFrame(alignFilterWithJobs), { passive: true });
 
     advancedPager.addEventListener('click', event => {
       const btn = event.target.closest('.tc-advanced-page');
@@ -317,7 +343,7 @@
     const observer = new MutationObserver(() => { if (!applying && isActive()) setTimeout(scheduleApply, 20); });
     observer.observe(jobList, { childList: true });
     document.addEventListener('tc:country-filter-change', event => { if (event.detail?.restoreFromAdvanced) return; page = 1; setTimeout(scheduleApply, 80); });
-    document.addEventListener('tc:job-search-results', () => { page = 1; setTimeout(scheduleApply, 80); });
+    document.addEventListener('tc:job-search-results', () => { page = 1; setTimeout(scheduleApply, 80); setTimeout(alignFilterWithJobs, 90); });
     document.querySelectorAll('.tab,.filter-btn,.select-like,.source-chip,.leg-row[data-sector],.net-node').forEach(el => el.addEventListener('click', () => { page = 1; setTimeout(scheduleApply, 100); }, true));
 
     scheduleApply();
