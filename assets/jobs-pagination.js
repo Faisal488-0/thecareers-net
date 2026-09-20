@@ -473,7 +473,7 @@
     if(!cfg.SUPABASE_URL||!cfg.SUPABASE_PUBLISHABLE_KEY)return;
     try{
       const base=cfg.SUPABASE_URL.replace(/\/$/,'');
-      const res=await fetch(`${base}/rest/v1/jobs?select=id&status=eq.active`,{
+      const res=await fetch(`${base}/rest/v1/jobs?select=id&status=eq.active&verified=eq.true`,{
         method:'HEAD',
         headers:{apikey:cfg.SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${cfg.SUPABASE_PUBLISHABLE_KEY}`,Prefer:'count=exact',Range:'0-0'}
       });
