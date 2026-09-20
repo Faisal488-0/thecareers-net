@@ -13,6 +13,24 @@ function decodeBasicEntities(v){
 function stripHtml(v){ return clean(decodeBasicEntities(v).replace(/<[^>]*>/g,' ')); }
 function keyText(v){ return clean(v).toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g,' ').trim(); }
 function salaryNumber(v){ const n=Number(v); return Number.isFinite(n)&&n>0?n:null; }
+function cleanEmail(v){
+  const e=clean(v).replace(/^mailto:/i,'').split(/[?&#]/)[0].trim().toLowerCase();
+  if(!/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i.test(e)) return null;
+  if(/^(?:support|privacy|legal|webmaster|admin|info|marketing|sales|press|media|dpo|dataprotection|data\.protection|security|help)@/i.test(e)) return null;
+  return e;
+}
+function extractApplicationEmail(explicit, description=''){
+  const direct=cleanEmail(explicit);
+  if(direct) return direct;
+  const raw=decodeBasicEntities(String(description||'')).replace(/<[^>]*>/g,' ');
+  const emailRe=/[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+/ig;
+  for(const m of raw.matchAll(emailRe)){
+    const email=cleanEmail(m[0]); if(!email) continue;
+    const i=m.index||0, context=raw.slice(Math.max(0,i-140),Math.min(raw.length,i+m[0].length+140));
+    if(/\b(?:apply|application|send\s+(?:your\s+)?(?:cv|resume)|cv|résumé|resume|recruit(?:ment|er)?|hiring|vacanc(?:y|ies)|job\s+application|careers?)\b/i.test(context)) return email;
+  }
+  return null;
+}
 
 const GENERIC_TITLE_PATTERNS = [
   /^apply(?:\s+now)?$/i,/^view\s+and\s+apply$/i,/^click\s+here\s+to\s+apply$/i,/^how\s+to\s+apply$/i,
@@ -186,6 +204,8 @@ export function normalizeJob(job, defaults = {}) {
   let salaryMin=salaryNumber(job.salary_min), salaryMax=salaryNumber(job.salary_max);
   if(salaryMin&&salaryMax&&salaryMax<salaryMin)[salaryMin,salaryMax]=[salaryMax,salaryMin];
   const currency=clean(job.currency)||null;
+  const applicationEmail=extractApplicationEmail(job.application_email, job.description);
+  const applyMethod=applicationEmail?'email':(clean(job.apply_method)||'website');
 
   // Backend quality gate: only a clear role + company + direct HTTP(S) job URL + determinable location can become active.
   if (!title || !company || !url || !location) {
@@ -199,6 +219,8 @@ export function normalizeJob(job, defaults = {}) {
       salary_min:null,
       salary_max:null,
       currency:null,
+      application_email:null,
+      apply_method:null,
       published_at:null,
       url:null,
       source_name:sourceName,
@@ -217,6 +239,8 @@ export function normalizeJob(job, defaults = {}) {
     salary_min:salaryMin,
     salary_max:salaryMax,
     currency,
+    application_email:applicationEmail,
+    apply_method:applyMethod,
     published_at:job.published_at||null,
     url,
     source_name:sourceName,
