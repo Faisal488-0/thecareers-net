@@ -6,13 +6,14 @@ on:
     paths:
       - 'backend/scrape-oidc.mjs'
       - 'backend/challenge-fallback-oidc.mjs'
+      - 'backend/hourly-job-audit.mjs'
       - 'backend/arbeitnow-ingest.mjs'
       - 'backend/skills/**'
       - 'package.json'
       - '.github/workflows/scrape.yml'
   schedule:
-    # Five refresh windows per day, approximately every 5 hours, staying within free-tier limits.
-    - cron: '37 0,5,10,15,20 * * *'
+    # Hourly discovery + verification cycle. Public-repo Actions remain within the project's no-paid-services rule.
+    - cron: '17 * * * *'
 
 permissions:
   contents: read
@@ -87,3 +88,10 @@ jobs:
         env:
           SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
         run: node backend/challenge-fallback-oidc.mjs
+
+      - name: Audit published jobs and remove clearly expired listings
+        if: always()
+        shell: bash
+        env:
+          SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
+        run: node backend/hourly-job-audit.mjs
