@@ -1,3 +1,18 @@
+function readBaseSalary(item={}) {
+  const base=item?.baseSalary;
+  if(!base||typeof base!=='object') return {salary_min:null,salary_max:null,currency:null};
+  const value=base.value;
+  const num=v=>{const n=Number(v);return Number.isFinite(n)&&n>0?n:null;};
+  let min=null,max=null;
+  if(typeof value==='number'||typeof value==='string'){min=max=num(value);}
+  else if(value&&typeof value==='object'){
+    min=num(value.minValue ?? value.value);
+    max=num(value.maxValue ?? value.value);
+  }
+  if(min&&max&&max<min)[min,max]=[max,min];
+  return {salary_min:min,salary_max:max,currency:String(base.currency||value?.currency||'').trim()||null};
+}
+
 export function extractJobPostingJsonLd($, pageUrl, defaults = {}) {
   const out = [];
   $('script[type="application/ld+json"]').each((_, el) => {
@@ -18,6 +33,7 @@ export function extractJobPostingJsonLd($, pageUrl, defaults = {}) {
       const address = loc?.address || {};
       let url = item.url || pageUrl;
       try { url = new URL(url, pageUrl).href; } catch {}
+      const salary=readBaseSalary(item);
       out.push({
         title: item.title || '',
         company: org.name || defaults.company || '',
@@ -25,6 +41,9 @@ export function extractJobPostingJsonLd($, pageUrl, defaults = {}) {
         employment_type: Array.isArray(item.employmentType) ? item.employmentType.join(', ') : item.employmentType || null,
         category: item.industry || defaults.category || null,
         description: typeof item.description === 'string' ? item.description.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '',
+        salary_min: salary.salary_min,
+        salary_max: salary.salary_max,
+        currency: salary.currency,
         published_at: item.datePosted || null,
         url,
         source_name: defaults.sourceName || '',
