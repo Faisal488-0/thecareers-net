@@ -125,8 +125,20 @@
       .tc-net-filter-clear{width:100%;height:38px;margin-top:10px;border:1px solid #dce1e7;border-radius:10px;background:#fff;color:#30353c;font-size:11px;font-weight:800;cursor:pointer}.tc-net-filter-clear:hover:not(:disabled){background:#f6f8fa;border-color:#c9d0d8}.tc-net-filter-clear:disabled{opacity:.38;cursor:default}
       .tc-advanced-pager{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;width:100%;padding:16px 8px 8px}.tc-advanced-page{min-width:38px;height:38px;padding:0 10px;border:1px solid #e0e4e9;border-radius:9px;background:#fff;color:#555c66;font:750 10.5px 'JetBrains Mono',monospace;cursor:pointer}.tc-advanced-page.active{background:#111318;color:#fff;border-color:#111318}.tc-advanced-page:disabled{opacity:.35;cursor:default}.tc-advanced-summary{width:100%;text-align:center;margin-top:3px;color:#8b919a;font-size:10px}
       @media(min-width:761px){
-        .sidebar{overflow-y:auto!important;overscroll-behavior:contain;scrollbar-width:thin}
-        .sidebar .tc-net-filter-panel{max-height:calc(100vh - 24px);overflow:auto}
+        .sidebar{
+          position:relative!important;
+          top:auto!important;
+          height:auto!important;
+          min-height:100vh!important;
+          align-self:stretch!important;
+          overflow:visible!important;
+        }
+        .sidebar .tc-net-filter-panel{
+          position:sticky!important;
+          top:16px!important;
+          max-height:calc(100vh - 32px);
+          overflow:auto;
+        }
         .sidebar .tc-net-filter-toggle{display:none!important}
         .sidebar .tc-net-filter-body{display:block!important}
       }
@@ -347,6 +359,8 @@
     document.querySelectorAll('.tab,.filter-btn,.select-like,.source-chip,.leg-row[data-sector],.net-node').forEach(el => el.addEventListener('click', () => { page = 1; setTimeout(scheduleApply, 100); }, true));
 
     scheduleApply();
+    setTimeout(alignFilterWithJobs, 120);
+    setTimeout(alignFilterWithJobs, 600);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once: true });
