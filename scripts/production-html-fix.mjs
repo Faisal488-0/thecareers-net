@@ -74,21 +74,27 @@ for (const file of await walk(root)) {
   // artifact here so desktop remains unchanged and mobile gets native scroll,
   // responsive layout, a usable nav drawer, and deliberate globe gestures.
   if (isDashboard) {
-    if (!/assets\/ui-ux-pro-max\.css/i.test(html)) {
-      html = insertBeforeHeadEnd(html, `<link rel="stylesheet" href="./assets/ui-ux-pro-max.css?v=${mobileBuild}">`)
-    }
-    const mobileScripts = [
-      'mobile-nav.js',
-      'mobile-jobs-fix.js',
-      'mobile-globe-touch.js'
-    ]
-    for (const script of mobileScripts) {
-      if (!html.includes(`assets/${script}`)) {
-        html = insertBeforeBodyEnd(html, `<script src="./assets/${script}?v=${mobileBuild}" defer></script>`)
+    // config.js is the single production bootstrap for UI/UX CSS, mobile
+    // interaction scripts and the service worker. Avoid injecting older
+    // duplicate assets here, which can cause conflicting CSS/listeners.
+    const hasRuntimeBootstrap = /<script[^>]+src=["']\.\/config\.js(?:\?[^"']*)?["']/i.test(html)
+    if (!hasRuntimeBootstrap) {
+      if (!/assets\/ui-ux-pro-max\.css/i.test(html)) {
+        html = insertBeforeHeadEnd(html, `<link rel="stylesheet" href="./assets/ui-ux-pro-max.css?v=${mobileBuild}">`)
       }
-    }
-    if (!/navigator\.serviceWorker\.register/i.test(html)) {
-      html = insertBeforeBodyEnd(html, `<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));}</script>`)
+      const mobileScripts = [
+        'mobile-nav.js',
+        'mobile-jobs-fix.js',
+        'mobile-globe-touch.js'
+      ]
+      for (const script of mobileScripts) {
+        if (!html.includes(`assets/${script}`)) {
+          html = insertBeforeBodyEnd(html, `<script src="./assets/${script}?v=${mobileBuild}" defer></script>`)
+        }
+      }
+      if (!/navigator\.serviceWorker\.register/i.test(html)) {
+        html = insertBeforeBodyEnd(html, `<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));}</script>`)
+      }
     }
   }
 
