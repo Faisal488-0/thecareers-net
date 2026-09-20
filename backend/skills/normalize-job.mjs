@@ -12,6 +12,7 @@ function decodeBasicEntities(v){
 }
 function stripHtml(v){ return clean(decodeBasicEntities(v).replace(/<[^>]*>/g,' ')); }
 function keyText(v){ return clean(v).toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g,' ').trim(); }
+function salaryNumber(v){ const n=Number(v); return Number.isFinite(n)&&n>0?n:null; }
 
 const GENERIC_TITLE_PATTERNS = [
   /^apply(?:\s+now)?$/i,/^view\s+and\s+apply$/i,/^click\s+here\s+to\s+apply$/i,/^how\s+to\s+apply$/i,
@@ -182,6 +183,9 @@ export function normalizeJob(job, defaults = {}) {
   const company = clearCompany(job.company) || clearCompany(defaults.company);
   const location = inferLocation(title, clean(job.location) || clean(defaults.location));
   const sourceName = clean(job.source_name) || clean(defaults.sourceName);
+  let salaryMin=salaryNumber(job.salary_min), salaryMax=salaryNumber(job.salary_max);
+  if(salaryMin&&salaryMax&&salaryMax<salaryMin)[salaryMin,salaryMax]=[salaryMax,salaryMin];
+  const currency=clean(job.currency)||null;
 
   // Backend quality gate: only a clear role + company + direct HTTP(S) job URL + determinable location can become active.
   if (!title || !company || !url || !location) {
@@ -192,6 +196,9 @@ export function normalizeJob(job, defaults = {}) {
       employment_type:null,
       category:null,
       description:null,
+      salary_min:null,
+      salary_max:null,
+      currency:null,
       published_at:null,
       url:null,
       source_name:sourceName,
@@ -207,6 +214,9 @@ export function normalizeJob(job, defaults = {}) {
     employment_type:clean(job.employment_type)||null,
     category:clean(job.category)||clean(defaults.category)||null,
     description:stripHtml(job.description)||null,
+    salary_min:salaryMin,
+    salary_max:salaryMax,
+    currency,
     published_at:job.published_at||null,
     url,
     source_name:sourceName,
