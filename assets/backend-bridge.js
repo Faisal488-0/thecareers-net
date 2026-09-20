@@ -271,10 +271,10 @@
       rows=await rpc('search_jobs_by_role_v2',{p_query:clean(searchQuery),p_limit:500,p_country:countryFilter||'all',p_filter:filterMode||'all',p_sector:sectorFilter||'',p_sort:sortMode||'relevance'});
     } catch (err) {
       console.warn('[TheCareers] role-search RPC fallback',err);
-      rows=await rest('jobs?select=id,title,company,location,country,employment_type,category,salary_min,salary_max,currency,score,verified,published_at,found_at,url,source_name&status=eq.active&url=not.is.null&order=score.desc.nullslast,found_at.desc.nullslast&limit=500');
+      rows=await rest('jobs?select=id,title,company,location,country,employment_type,category,salary_min,salary_max,currency,score,verified,published_at,found_at,url,source_name&status=eq.active&verified=eq.true&url=not.is.null&order=score.desc.nullslast,found_at.desc.nullslast&limit=500');
     }
     if(seq!==jobLoadSeq)return;
-    latestJobs=rows||[];updateTabCounts();updateMetrics();updateSectorUI();renderJobs();
+    latestJobs=(rows||[]).filter(j=>j?.verified===true);updateTabCounts();updateMetrics();updateSectorUI();renderJobs();
     document.dispatchEvent(new CustomEvent('tc:job-search-results',{detail:{query:clean(searchQuery),count:validJobs(latestJobs).length,country:countryFilter,filter:filterMode,sector:sectorFilter,sort:sortMode}}));
   }
 
