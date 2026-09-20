@@ -38,6 +38,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Publish QA start marker
+        shell: bash
+        env:
+          SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
+        run: |
+          node <<'NODE'
+          async function main(){
+            const req=process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+            const auth=process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+            const sep=req.includes('?')?'&':'?';
+            const tr=await fetch(req+sep+'audience=thecareers-supabase',{headers:{Authorization:'Bearer '+auth}});
+            const tj=await tr.json();
+            const body={action:'event',message:`Browser QA START — run ${process.env.GITHUB_RUN_ID||'unknown'}`,level:'info',meta:{via:'github_browser_qa_start',github_run_id:process.env.GITHUB_RUN_ID||null,github_sha:process.env.GITHUB_SHA||null,target:process.env.TARGET_URL||''}};
+            const r=await fetch(process.env.SUPABASE_GITHUB_BRIDGE_URL,{method:'POST',headers:{Authorization:'Bearer '+tj.value,'Content-Type':'application/json'},body:JSON.stringify(body)});
+            if(!r.ok)throw new Error(await r.text());
+          }
+          main().catch(e=>{console.error(e);process.exitCode=1});
+          NODE
+
       - name: Wait for Pages deployment on push
         if: github.event_name == 'push'
         run: sleep 35
