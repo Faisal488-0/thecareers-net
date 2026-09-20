@@ -332,7 +332,28 @@
   if(filterCtl){const modes=[['all','Filters'],['verified','Filters: Verified'],['priority','Filters: Match 50+'],['salary','Filters: Salary listed']];let i=0;filterCtl.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();i=(i+1)%modes.length;filterMode=modes[i][0];filterCtl.textContent=modes[i][1];filterCtl.classList.toggle('tc-filter-active',filterMode!=='all');activeTab='all';loadJobs().catch(err=>console.error('[TheCareers] filter',err));},true);}
 
   const btn=document.getElementById('searchNowBtn');
-  if(btn)btn.addEventListener('click',async e=>{e.preventDefault();e.stopImmediatePropagation();if(btn.dataset.busy==='1')return;btn.dataset.busy='1';const old=btn.innerHTML;btn.innerHTML='<span class="ic"></span>Searching…';btn.style.opacity='.72';try{const result=await callSearchNow();window.pushActivity?.(`BACKEND SEARCH STARTED — run ${result.run_id||''}`);await new Promise(r=>setTimeout(r,1200));await refresh();}catch(err){console.error('[TheCareers] Search Now',err);window.pushActivity?.(`BACKEND ERROR — ${err.message}`);}finally{btn.innerHTML=old;btn.style.opacity='1';btn.dataset.busy='0';}},true);
+  if(btn)btn.addEventListener('click',async e=>{
+    // Signed-in users with CV-derived preferences are handled by
+    // utility-panels.js. Do not consume the event before that listener runs.
+    if(window.TheCareersAccount?.user && window.TheCareersAccount?.preferences) return;
+    e.preventDefault();e.stopImmediatePropagation();
+    if(btn.dataset.busy==='1')return;
+    btn.dataset.busy='1';
+    const old=btn.innerHTML;
+    btn.innerHTML='<span class="ic"></span>Searching…';
+    btn.style.opacity='.72';
+    try{
+      const result=await callSearchNow();
+      window.pushActivity?.(`BACKEND SEARCH STARTED — run ${result.run_id||''}`);
+      await new Promise(r=>setTimeout(r,1200));
+      await refresh();
+    }catch(err){
+      console.error('[TheCareers] Search Now',err);
+      window.pushActivity?.(`BACKEND ERROR — ${err.message}`);
+    }finally{
+      btn.innerHTML=old;btn.style.opacity='1';btn.dataset.busy='0';
+    }
+  },true);
 
   const navTargets={dashboard:'.content',jobs:'.row-opps',search:'.row-core',companies:'.sources-scan',cv:'.workflow',settings:'.topbar'};
   document.querySelectorAll('.nav-item').forEach(item=>item.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));item.classList.add('active');const target=document.querySelector(navTargets[item.dataset.page]||'.content');target?.scrollIntoView({behavior:'smooth',block:'start'});if(item.dataset.page==='jobs')setTimeout(()=>document.querySelector('.tab.active')?.focus(),300);if(item.dataset.page==='search')setTimeout(()=>btn?.focus(),300);if(item.dataset.page==='cv')window.pushActivity?.('CV Center workflow selected');if(item.dataset.page==='settings')window.pushActivity?.('Settings/navigation controls ready');},true));
