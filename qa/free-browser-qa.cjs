@@ -165,4 +165,24 @@ async function inspectPage(browser, mode, viewport) {
   const result={mode,target:page.url(),status:response?.status()||null,title,elapsedMs:Date.now()-started,perf,assertions,failures:failures.slice(0,100),criticalFailureCount:failures.filter(x=>x.critical).length,failedAssertionCount:assertions.filter(x=>!x.ok).length}; await context.close(); return result;
 }
 
-(async()=>{ const browser=await chromium.launch({headless:true}); const desktop=await inspectPage(browser,'desktop',{width:1440,height:1000}); const mobile=await inspectPage(browser,'mobile',{width:390,height:844}); await browser.close(); const report={target,generatedAt:new Date().toISOString(),engine:'local Chromium + Playwright (no cloud API key)',summary:{failedAssertions:desktop.failedAssertionCount+mobile.failedAssertionCount,criticalBrowserFailures:desktop.criticalFailureCount+mobile.criticalFailureCount},desktop,mobile}; fs.writeFileSync(path.join(outDir,'report.json'),JSON.stringify(report,null,2)); const md=['# TheCareers Browser QA','',`Target: ${target}`,`Generated: ${report.generatedAt}`,`Failed assertions: ${report.summary.failedAssertions}`,`Critical browser/network failures: ${report.summary.criticalBrowserFailures}`,'',...[desktop,mobile].flatMap(r=>[`## ${r.mode}`,...r.assertions.map(a=>`- ${a.ok?'✅':'❌'} ${a.name}${a.details?` — ${a.details}`:''}`),...(r.failures.length?['','Browser/network findings:',...r.failures.map(f=>`- ${f.critical?'❌':'⚠️'} ${f.type}: ${f.status||''} ${f.url||''} ${f.message||''}`)]:[]),''])].join('\n'); fs.writeFileSync(path.join(outDir,'report.md'),md); if(report.summary.failedAssertions>0||report.summary.criticalBrowserFailures>0) process.exitCode=2; })();
+(async()=>{
+  let browser;
+  try{
+    browser=await chromium.launch({headless:true});
+    const desktop=await inspectPage(browser,'desktop',{width:1440,height:1000});
+    const mobile=await inspectPage(browser,'mobile',{width:390,height:844});
+    await browser.close(); browser=null;
+    const report={target,generatedAt:new Date().toISOString(),engine:'local Chromium + Playwright (no cloud API key)',summary:{failedAssertions:desktop.failedAssertionCount+mobile.failedAssertionCount,criticalBrowserFailures:desktop.criticalFailureCount+mobile.criticalFailureCount},desktop,mobile};
+    fs.writeFileSync(path.join(outDir,'report.json'),JSON.stringify(report,null,2));
+    const md=['# TheCareers Browser QA','',`Target: ${target}`,`Generated: ${report.generatedAt}`,`Failed assertions: ${report.summary.failedAssertions}`,`Critical browser/network failures: ${report.summary.criticalBrowserFailures}`,'',...[desktop,mobile].flatMap(r=>[`## ${r.mode}`,...r.assertions.map(a=>`- ${a.ok?'✅':'❌'} ${a.name}${a.details?` — ${a.details}`:''}`),...(r.failures.length?['','Browser/network findings:',...r.failures.map(f=>`- ${f.critical?'❌':'⚠️'} ${f.type}: ${f.status||''} ${f.url||''} ${f.message||''}`)]:[]),''])].join('\n');
+    fs.writeFileSync(path.join(outDir,'report.md'),md);
+    if(report.summary.failedAssertions>0||report.summary.criticalBrowserFailures>0)process.exitCode=2;
+  }catch(error){
+    if(browser)await browser.close().catch(()=>{});
+    const message=String(error?.stack||error?.message||error);
+    const report={target,generatedAt:new Date().toISOString(),engine:'local Chromium + Playwright (no cloud API key)',fatal:true,error:message,summary:{failedAssertions:1,criticalBrowserFailures:1}};
+    fs.writeFileSync(path.join(outDir,'report.json'),JSON.stringify(report,null,2));
+    fs.writeFileSync(path.join(outDir,'report.md'),`# TheCareers Browser QA\n\nFatal audit error:\n\n\`\`\`\n${message}\n\`\`\`\n`);
+    process.exitCode=2;
+  }
+})();
