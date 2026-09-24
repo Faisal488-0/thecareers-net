@@ -12,8 +12,9 @@ on:
       - 'package.json'
       - '.github/workflows/scrape.yml'
   schedule:
-    # Hourly discovery + verification cycle. Public-repo Actions remain within the project's no-paid-services rule.
-    - cron: '17 * * * *'
+    # Maintain hourly discovery and expiry checks; expensive browser collection runs twice daily.
+    - cron: '17 0,12 * * *'
+    - cron: '17 1-11,13-23 * * *'
 
 permissions:
   contents: read
@@ -32,6 +33,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+          cache: npm
       - run: npm install --no-audit --no-fund
 
       - name: Check configured job API secrets
@@ -58,6 +60,20 @@ jobs:
           echo "::add-mask::$TOKEN"
           echo "GITHUB_OIDC_TOKEN=$TOKEN" >> "$GITHUB_ENV"
 
+      - name: Select light hourly or full twice-daily collector
+        id: mode
+        shell: bash
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != 'schedule' ] || [ "$SCHEDULE" = '17 0,12 * * *' ]; then
+            echo 'full=true' >> "$GITHUB_OUTPUT"
+            echo 'Full collector: browser, public fallback and verification.'
+          else
+            echo 'full=false' >> "$GITHUB_OUTPUT"
+            echo 'Hourly light collector: public HTTP/RSS feeds and verification.'
+          fi
+
       - name: Ingest Arbeitnow API
         shell: bash
         env:
@@ -66,24 +82,28 @@ jobs:
         run: node backend/arbeitnow-ingest.mjs
 
       - name: Install Chromium for browser sources
+        if: steps.mode.outputs.full == 'true'
         run: npx playwright install chromium
 
-      - name: Run bounded 8-minute scrape cycle
+      - name: Run bounded scrape cycle
         shell: bash
         env:
           SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
+          SCRAPE_LIGHT_MODE: ${{ steps.mode.outputs.full == 'true' && '0' || '1' }}
+          FULL_MODE: ${{ steps.mode.outputs.full }}
         run: |
+          if [ "$FULL_MODE" = 'true' ]; then BUDGET=480; else BUDGET=120; fi
           set +e
-          timeout --signal=TERM --kill-after=15s 480s npm run scrape
+          timeout --signal=TERM --kill-after=15s "${BUDGET}s" npm run scrape
           code=$?
           if [ "$code" -eq 124 ] || [ "$code" -eq 143 ]; then
-            echo "Scrape time budget reached after 8 minutes; ending normally."
+            echo "Scrape time budget reached after ${BUDGET} seconds; hourly audit will still run."
             exit 0
           fi
           exit "$code"
 
       - name: Run challenge-safe public fallback
-        if: always()
+        if: always() && steps.mode.outputs.full == 'true'
         shell: bash
         env:
           SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
