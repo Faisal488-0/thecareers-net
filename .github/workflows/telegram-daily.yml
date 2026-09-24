@@ -1,9 +1,7 @@
 name: TheCareers daily Telegram summary
 
 on:
-  schedule:
-    # GitHub Actions cron is UTC. 20:59 UTC = 23:59 Asia/Kuwait.
-    - cron: '59 20 * * *'
+
   workflow_dispatch:
 
 permissions:

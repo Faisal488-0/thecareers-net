@@ -7,9 +7,6 @@ on:
       - 'backend/jsearch-ingest.mjs'
       - 'backend/jooble-ingest.mjs'
       - '.github/workflows/job-apis.yml'
-  schedule:
-    # Run both API collectors together once daily to minimize GitHub/Supabase wake-ups.
-    - cron: '23 5 * * *'
 
 permissions:
   contents: read

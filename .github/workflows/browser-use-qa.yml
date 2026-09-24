@@ -15,9 +15,6 @@ on:
       - 'assets/**'
       - 'qa/free-browser-qa.cjs'
       - '.github/workflows/browser-use-qa.yml'
-  schedule:
-    # Weekly is enough for a background browser audit; push/manual runs remain available.
-    - cron: '17 1 * * 0'
 
 permissions:
   contents: read

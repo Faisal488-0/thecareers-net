@@ -11,10 +11,6 @@ on:
       - 'backend/skills/**'
       - 'package.json'
       - '.github/workflows/scrape.yml'
-  schedule:
-    # Maintain hourly discovery and expiry checks; expensive browser collection runs twice daily.
-    - cron: '17 0,12 * * *'
-    - cron: '17 1-11,13-23 * * *'
 
 permissions:
   contents: read
