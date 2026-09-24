@@ -139,7 +139,27 @@ async function markSource(source, fields) {
 
 await ensureFreshOidc();
 const sourceReply = await bridge('list_sources');
-const sources = sourceReply.data || [];
+const allSources = sourceReply.data || [];
+// On ordinary hourly runs, scan a rotating, Kuwait-first sample of public HTTP/RSS
+// sources. Browser-dependent sources still run in the full twice-daily collection.
+const LIGHT_MODE = process.env.SCRAPE_LIGHT_MODE === '1';
+const rotate = (list, offset) => list.length
+  ? [...list.slice(offset % list.length), ...list.slice(0, offset % list.length)]
+  : [];
+const kuwaitSource = source => /kuwait|الكويت/i.test(
+  [source.name, source.url, source.default_location].filter(Boolean).join(' ')
+);
+const hourSlot = Math.floor(Date.now() / 3600000);
+const publicSources = allSources.filter(source => source.engine !== 'playwright');
+const sources = LIGHT_MODE
+  ? [
+    ...rotate(publicSources.filter(kuwaitSource), hourSlot).slice(0, 3),
+    ...rotate(publicSources.filter(source => !kuwaitSource(source)), hourSlot).slice(0, 2)
+  ]
+  : allSources;
+if (LIGHT_MODE) {
+  console.log(`Hourly light collection: ${sources.length} public RSS/HTTP sources (${publicSources.length} eligible); full sweep twice daily.`);
+}
 
 if (!sources.length) {
   console.log('No enabled sources in Supabase.');
