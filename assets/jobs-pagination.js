@@ -312,29 +312,7 @@
     }finally{applying=false;}
   }
 
-  function syncJobsFoundTotal(){
-    if(!Number.isFinite(activeJobsTotal))return;
-    const value=Number(activeJobsTotal).toLocaleString();
-    const stat=document.getElementById('statJobs');
-    if(stat&&stat.textContent!==value)stat.textContent=value;
-    const donutNum=document.querySelector('.donut-center .num');
-    if(donutNum&&donutNum.textContent!==value)donutNum.textContent=value;
-  }
-
-  async function refreshActiveJobsTotal(){
-    const cfg=window.THECAREERS_CONFIG||{};
-    if(!cfg.SUPABASE_URL||!cfg.SUPABASE_PUBLISHABLE_KEY)return;
-    try{
-      const base=cfg.SUPABASE_URL.replace(/\/$/,'');
-      const res=await fetch(`${base}/rest/v1/jobs?select=id&status=eq.active&verified=eq.true&quality_status=eq.approved`,{
-        method:'HEAD',
-        headers:{apikey:cfg.SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${cfg.SUPABASE_PUBLISHABLE_KEY}`,Prefer:'count=exact',Range:'0-0'}
-      });
-      const range=res.headers.get('content-range')||'';
-      const m=range.match(/\/(\d+)$/);
-      if(res.ok&&m){activeJobsTotal=Number(m[1]);syncJobsFoundTotal();}
-    }catch(err){console.warn('[TheCareers] Jobs Found count refresh failed',err);}
-  }
+  // The live backend is the sole source of visible job counts; no second HEAD poll.
 
   document.addEventListener('click',e=>{
     const btn=e.target.closest('#tcJobsPagination .tc-page-btn');
@@ -367,17 +345,11 @@
       requestAnimationFrame(()=>{
         enhanceRows();
         apply({resetIfChanged:true});
-        syncJobsFoundTotal();
+
       });
     });
     observer.observe(list,{childList:true});
 
-    const stat=document.getElementById('statJobs');
-    if(stat)new MutationObserver(syncJobsFoundTotal).observe(stat,{childList:true,characterData:true,subtree:true});
-
-    apply({resetIfChanged:true});
-    refreshActiveJobsTotal();
-    setInterval(refreshActiveJobsTotal,60000);
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
