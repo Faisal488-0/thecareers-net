@@ -18,6 +18,7 @@
   const savedKey = 'thecareers_saved_job_ids_v2';
 
   let latestJobs = [];
+  const animatedJobIds = new Set();
   let activeTab = document.querySelector('.tab.active')?.dataset.tab || 'all';
   let filterMode = 'all';
   let sortMode = 'newest';
@@ -178,7 +179,7 @@
     }
 
     const saved = getSaved();
-    const html = rows.map(j => {
+    const html = rows.map((j, index) => {
       const pct = Math.max(0, Math.min(100, Number(j.score || 0)));
       const badgeClass = j.verified ? 'verified' : (pct >= 70 ? 'high' : 'new');
       const badgeLabel = j.verified ? 'Verified' : (pct >= 70 ? 'High Match' : 'New');
@@ -194,7 +195,9 @@
       const url = safeJobUrl(j.url);
       const id = String(j.id || url);
       const isSaved = saved.has(id) || saved.has(url);
-      return `<div class="job-row backend-job" data-job-id="${escapeHtml(id)}" data-job-url="${escapeHtml(url)}" tabindex="0" role="link" aria-label="Open ${title} at ${company}">
+      const firstDisplay = !animatedJobIds.has(id);
+      if (firstDisplay) animatedJobIds.add(id);
+      return `<div class="job-row backend-job tc-job-level6${firstDisplay ? ' tc-job-enter' : ''}" style="--tc-enter-delay:${Math.min(index,9)*40}ms" data-job-id="${escapeHtml(id)}" data-job-url="${escapeHtml(url)}" tabindex="0" role="link" aria-label="Open ${title} at ${company}">
         <div class="job-logo" style="background:#2f6feb">${initials}</div>
         <div class="job-main">
           <div class="title">${title}</div>
@@ -218,7 +221,7 @@
     list.querySelectorAll('.backend-job').forEach(row => {
       const open = () => { const u = safeJobUrl(row.dataset.jobUrl); if (u) window.open(u, '_blank', 'noopener,noreferrer'); };
       row.addEventListener('click', e => { if (!e.target.closest('a,button')) open(); });
-      row.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); open(); } });
+      row.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === row) { e.preventDefault(); open(); } });
     });
     list.querySelectorAll('.tc-save-job').forEach(btn => {
       btn.addEventListener('click', e => {
