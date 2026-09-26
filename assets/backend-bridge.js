@@ -195,9 +195,10 @@
       const url = safeJobUrl(j.url);
       const id = String(j.id || url);
       const isSaved = saved.has(id) || saved.has(url);
+      const hasSalary = Number(j.salary_min || 0) > 0 || Number(j.salary_max || 0) > 0;
       const firstDisplay = !animatedJobIds.has(id);
       if (firstDisplay) animatedJobIds.add(id);
-      return `<div class="job-row backend-job tc-job-level6${firstDisplay ? ' tc-job-enter' : ''}" style="--tc-enter-delay:${Math.min(index,9)*40}ms" data-job-id="${escapeHtml(id)}" data-job-url="${escapeHtml(url)}" tabindex="0" role="link" aria-label="Open ${title} at ${company}">
+      return `<div class="job-row backend-job tc-job-level6${hasSalary ? ' tc-has-salary' : ''}${firstDisplay ? ' tc-job-enter' : ''}" style="--tc-enter-delay:${Math.min(index,9)*40}ms" data-job-id="${escapeHtml(id)}" data-job-url="${escapeHtml(url)}" tabindex="0" role="link" aria-label="Open ${title} at ${company}">
         <div class="job-logo" style="background:#2f6feb">${initials}</div>
         <div class="job-main">
           <div class="title">${title}</div>
@@ -213,7 +214,7 @@
         </div>
         <div class="job-score"><div class="pct">${pct}%</div><div class="lbl">Match Score</div></div>
         <div class="tc-job-status" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><span class="badge ${badgeClass}">${badgeLabel}</span></div>
-        <div class="job-actions"><button class="icon-btn tc-save-job${isSaved ? ' tc-saved' : ''}" type="button" title="${isSaved ? 'Remove saved job' : 'Save job'}" aria-label="${isSaved ? 'Remove saved job' : 'Save job'}">${isSaved ? '✓' : '🔖'}</button><a class="icon-btn tc-open-job" title="Open official job page" aria-label="Open official job page" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">↗</a></div>
+        <div class="job-actions"><button class="icon-btn tc-save-job${isSaved ? ' tc-saved' : ''}" type="button" title="${isSaved ? 'Remove saved job' : 'Save job'}" aria-label="${isSaved ? 'Remove saved job' : 'Save job'}">${isSaved ? '✓' : '🔖'}</button><a class="icon-btn tc-open-job" title="Open official job page" aria-label="Open official job page" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open job ↗</a></div>
       </div>`;
     }).join('');
     list.innerHTML = html;
