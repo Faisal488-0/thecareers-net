@@ -29,9 +29,21 @@
   function rows() { return Array.from(list()?.querySelectorAll(':scope > .backend-job') || []); }
 
   function meta(row, name) {
+    // Compact cards share the .org markup. Keep filters compatible with
+    // older rows without making the compact cards carry redundant metadata.
+    const compact = {
+      type: '.tc-card-facts>div:nth-child(2) b',
+      location: '.tc-card-location',
+      country: '.tc-card-tags span:first-child',
+      salary: '.tc-card-facts>div:first-child b',
+      date: '.tc-card-employer time',
+      setting: '.tc-card-facts>div:nth-child(3) b'
+    }[name];
+    if (row.classList.contains('tc-job-compact') && compact) {
+      return clean(row.querySelector(compact)?.textContent || '');
+    }
     const item = row.querySelector(`[data-meta="${name}"]`);
-    if (!item) return '';
-    return clean(item.querySelector('strong')?.textContent || item.textContent || '');
+    return item ? clean(item.querySelector('strong')?.textContent || item.textContent || '') : '';
   }
 
   function employmentKeys(row) {
@@ -258,7 +270,7 @@
       const visible = new Set(matched.slice(from, to));
       rows().forEach(row => {
         const show = visible.has(row);
-        row.style.setProperty('display', show ? 'grid' : 'none', 'important');
+        row.style.setProperty('display', show ? 'flex' : 'none', 'important');
         row.setAttribute('aria-hidden', show ? 'false' : 'true');
       });
       renderAdvancedPager(matched);
