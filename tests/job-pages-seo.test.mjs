@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { eligible, render, schema, canonical, countryCode, plain } from '../scripts/generate-job-pages.mjs';
+import { eligible, render, schema, canonical, countryCode, plain, safeSlug } from '../scripts/generate-job-pages.mjs';
 const now=Date.now();
 function job(overrides={}){return {
  id:'42045f50-d32d-405b-bee1-934bc5a2eee2',title:'Operations Analyst',company:'Example Employer',
@@ -27,7 +27,7 @@ test('correct canonical and genuine optional Google fields',()=>{
  assert.equal(s.validThrough,undefined);
  assert.equal(s.jobLocation.address.addressCountry,'KW');
  assert.equal(countryCode({...j,country:'International',location:'Austin, TX, US'}),'US');
- assert.equal(canonical(j),'https://thecareers.net/jobs/'+j.id+'/');
+ assert.equal(canonical(j),'https://thecareers.net/jobs/'+safeSlug(j.id)+'/');
 });
 test('complete description, metadata uniqueness, source attribution and safe JSON-LD',()=>{
  const j=job({title:'Support </script><script>alert(1)</script> Lead'});
