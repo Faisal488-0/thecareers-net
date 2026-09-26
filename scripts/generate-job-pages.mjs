@@ -54,7 +54,8 @@ export function schema(job){
 export function render(job){
  if(!eligible(job))throw new Error('SEO job ineligible');
  const title=plain(job.title), company=plain(job.company), loc=plain(job.location),date=new Date(job.published_at).toISOString().slice(0,10);
- const meta=(title+' at '+company+' in '+loc+'. Original vacancy posted '+date+'. Ref '+job.id.slice(0,8)+'.').slice(0,190);
+ const prefix=(title+' at '+company+' in '+loc).slice(0,125).replace(/\s+\S*$/,'').trim();
+ const meta=prefix+'. Original vacancy: '+date+'. Unique listing ref '+job.id.slice(0,8)+'.';
  const json=JSON.stringify(schema(job)).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026').replace(/\u2028|\u2029/g,' ');
  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(title+' — '+company+' | TheCareers.net')+'</title><meta name="description" content="'+esc(meta)+'"><meta name="robots" content="index,follow"><link rel="canonical" href="'+esc(canonical(job))+'"><script type="application/ld+json">'+json+'</script></head><body><main><article><h1>'+esc(title)+'</h1><dl><dt>Hiring organization</dt><dd>'+esc(company)+'</dd><dt>Job location</dt><dd>'+esc(loc)+'</dd><dt>Original posting date</dt><dd>'+esc(date)+'</dd>'+(schema(job).employmentType?'<dt>Employment type</dt><dd>'+esc(schema(job).employmentType.replace('_',' '))+'</dd>':'')+'</dl><h2>Job description</h2><p>'+esc(plain(job.description))+'</p><p><a href="'+esc(safeUrl(job.url))+'" rel="nofollow noopener noreferrer">View original vacancy and application instructions</a></p></article></main></body></html>';
 }
