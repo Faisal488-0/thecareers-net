@@ -50,8 +50,8 @@
     const text = lower(meta(row, 'type'));
     const out = new Set();
     if (/\bpermanent\b/.test(text)) out.add('permanent');
-    if (/full[\s-]?time/.test(text)) out.add('full-time');
-    if (/part[\s-]?time/.test(text)) out.add('part-time');
+    if (/full[\s_-]?time/.test(text)) out.add('full-time');
+    if (/part[\s_-]?time/.test(text)) out.add('part-time');
     if (/\bcontract\b|contractor/.test(text)) out.add('contract');
     if (/temporary|\btemp\b/.test(text)) out.add('temporary');
     if (/intern(?:ship)?|trainee/.test(text)) out.add('internship');
