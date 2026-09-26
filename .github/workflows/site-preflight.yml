@@ -18,5 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Validate complete card descriptions
+        run: node --check assets/job-summary.js && node --check assets/backend-bridge.js && node --test tests/job-summary.test.cjs
       - name: Run website preflight
         run: node scripts/site-preflight.mjs

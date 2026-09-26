@@ -190,7 +190,7 @@
       const salary = escapeHtml(salaryText(j));
       const posted = escapeHtml(jobTime(j));
       const initials = escapeHtml(j.company.split(/\s+/).map(x=>x[0]).join('').slice(0,3).toUpperCase());
-      const description = escapeHtml(clean(j.description).replace(/<[^>]+>/g, '').slice(0,220));
+      const description = escapeHtml(window.TheCareersJobSummary(j.description, {title: j.title, company: j.company, lang: 'en'}));
       const url = safeJobUrl(j.url);
       const id = String(j.id || url);
       const isSaved = saved.has(id) || saved.has(url);
@@ -217,7 +217,7 @@
             <span class="tc-meta-item" data-meta="country"><small>Country</small><strong>${country}</strong></span>
             <span class="tc-meta-item" data-meta="category"><small>Category</small><strong>${cat}</strong></span>
           </div>
-          ${description ? `<p class="tc-card-blurb">${description}</p>` : ''}
+          <p class="tc-card-blurb">${description}</p>
         </div>
         <div class="job-score" aria-label="Relevance score ${pct} percent"><span class="pct">${pct}%</span><span class="lbl">Relevance</span></div>
         <div class="job-actions">
