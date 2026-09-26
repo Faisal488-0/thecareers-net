@@ -1,5 +1,9 @@
 name: TheCareers job scrape
 on:
+  # Hourly wake-up; the epoch-hour gate below runs the collector once per 5h
+  # continuously (no 4-hour midnight gap). Manual runs remain available.
+  schedule:
+    - cron: '17 * * * *'
   workflow_dispatch:
   push:
     branches: [main]
@@ -21,7 +25,26 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  cadence:
+    runs-on: ubuntu-latest
+    outputs:
+      run_cycle: ${{ steps.slot.outputs.run_cycle }}
+    steps:
+      - name: Select one continuous five-hour time slot
+        id: slot
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          hour=$(( $(date -u +%s) / 3600 ))
+          if [ "$EVENT_NAME" != 'schedule' ] || [ "$(( hour % 5 ))" -eq 0 ]; then
+            echo 'run_cycle=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'run_cycle=false' >> "$GITHUB_OUTPUT"
+          fi
   scrape:
+    needs: cadence
+    if: needs.cadence.outputs.run_cycle == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 16
     steps:
@@ -30,7 +53,7 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: npm install --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Check configured job API secrets
         shell: bash
