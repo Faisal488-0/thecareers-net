@@ -23,7 +23,7 @@ export function eligible(job,now=Date.now()){
  if(!UUID.test(String(job.id||''))||!plain(job.title)||!plain(job.company)||!safeUrl(job.url)) return false;
  if(job.status!=='active'||job.verified!==true||job.quality_status!=='approved')return false;
  const desc=plain(job.description);
- if(desc.length<150 || /(?:\.\.\.|…)$/u.test(desc))return false;
+ // Do not mark scraped truncated snippets as complete Google job descriptions.\n if(desc.length<150 || /(?:\.\.\.|…)/u.test(desc))return false;
  const posted=Date.parse(job.published_at||''),fresh=Date.parse(job.updated_at||'');
  if(!Number.isFinite(posted)||posted>now||now-posted>120*864e5) return false;
  if(!Number.isFinite(fresh)||fresh>now||now-fresh>45*864e5) return false;
