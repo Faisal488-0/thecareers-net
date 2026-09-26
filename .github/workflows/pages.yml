@@ -63,6 +63,9 @@ jobs:
       - name: Prepare unchanged production homepage
         if: steps.gate.outputs.publish == 'true'
         run: node scripts/production-html-fix.mjs
+      - name: Remove temporary build dependencies before Pages upload
+        if: steps.gate.outputs.publish == 'true'
+        run: rm -rf -- node_modules
       - uses: actions/configure-pages@v5
         if: steps.gate.outputs.publish == 'true'
       - uses: actions/upload-pages-artifact@v3
