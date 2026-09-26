@@ -4,6 +4,7 @@ import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, resolve, join } from 'node:path';
 import { createHash } from 'node:crypto';
+import { load } from 'cheerio';
 
 const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const ORIGIN='https://thecareers.net';
@@ -11,7 +12,13 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const COUNTRY={kuwait:'KW',kw:'KW',uae:'AE',ae:'AE','united arab emirates':'AE','saudi arabia':'SA',sa:'SA',qatar:'QA',qa:'QA',bahrain:'BH',bh:'BH',oman:'OM',om:'OM',us:'US','united states':'US',eg:'EG',egypt:'EG',in:'IN',india:'IN'};
 const TYPES={full_time:'FULL_TIME','full-time':'FULL_TIME','full time':'FULL_TIME',part_time:'PART_TIME','part-time':'PART_TIME','part time':'PART_TIME',permanent:'FULL_TIME',contract:'CONTRACTOR',contractor:'CONTRACTOR',temporary:'TEMPORARY',intern:'INTERN',internship:'INTERN'};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function plain(value){return String(value??'').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/\s+/g,' ').trim();}
+export function plain(value){
+ const raw=String(value??'');
+ if(!/[<&]/.test(raw))return raw.replace(/\s+/g,' ').trim();
+ const $=load('<main id="tc-extract">'+raw+'</main>');
+ $('#tc-extract script,#tc-extract style,#tc-extract noscript').remove();
+ return $('#tc-extract').text().replace(/\s+/g,' ').trim();
+}
 function safeUrl(url){try{const u=new URL(url);return u.protocol==='https:'||u.protocol==='http:'?u.href:null;}catch{return null;}}
 export function countryCode(job){
  let c=COUNTRY[String(job.country||'').trim().toLowerCase()];
@@ -30,7 +37,8 @@ export function eligible(job,now=Date.now()){
  if(!Number.isFinite(fresh)||fresh>now||now-fresh>45*864e5) return false;
  return !!countryCode(job) && !!plain(job.location);
 }
-export function canonical(job){return ORIGIN+'/jobs/'+job.id+'/';}
+export function safeSlug(id){return createHash('sha256').update(String(id)).digest('hex').slice(0,28);}
+export function canonical(job){return ORIGIN+'/jobs/'+safeSlug(job.id)+'/';}
 export function schema(job){
  const addr=plain(job.location).replace(/\bUNAVAILABLE\b,?\s*/gi,'').replace(/,\s*,/g,',').trim();
  const s={'@context':'https://schema.org','@type':'JobPosting',title:plain(job.title),
@@ -63,12 +71,12 @@ export async function generate(fetchJobs,now=new Date()){
  for(const job of qualified){
    const page=render(job),hash=createHash('sha256').update(page).digest('hex');
    const prev=old[job.id],lastmod=(prev?.hash===hash && prev.lastmod)?prev.lastmod:now.toISOString();
-   const path=join(ROOT,'jobs',job.id);
+   const path=join(ROOT,'jobs',safeSlug(job.id));
    await mkdir(path,{recursive:true});
    await writeFile(join(path,'index.html'),page);
    current[job.id]={hash,lastmod};
  }
- for(const id of Object.keys(old)){if(UUID.test(id)&&!current[id])await rm(join(ROOT,'jobs',id),{recursive:true,force:true});}
+ for(const id of Object.keys(old)){if(UUID.test(id)&&!current[id])await rm(join(ROOT,'jobs',safeSlug(id)),{recursive:true,force:true});}
  await mkdir(join(ROOT,'data'),{recursive:true});
  await writeFile(indexPath,JSON.stringify(current,null,2)+'\n');
  const urls=qualified.map(j=>'<url><loc>'+esc(canonical(j))+'</loc><lastmod>'+current[j.id].lastmod+'</lastmod></url>');
@@ -76,19 +84,14 @@ export async function generate(fetchJobs,now=new Date()){
  console.log('SEO_VERIFIED_JOB_PAGES='+qualified.length+'; skipped='+String(jobs.length-qualified.length));
  return qualified.length;
 }
-async function fromPublicRead(){
- const config=await readFile(join(ROOT,'config.js'),'utf8');
- const key=config.match(/SUPABASE_PUBLISHABLE_KEY:"([^"]+)"/)?.[1];
- const base=config.match(/SUPABASE_URL:"(https:\/\/[^"]+)"/)?.[1];
- if(!key||!base)throw new Error('Public Supabase config missing');
- const select='id,title,company,description,location,country,employment_type,published_at,updated_at,url,status,verified,quality_status';
- const q='/rest/v1/jobs?select='+select+'&status=eq.active&verified=eq.true&quality_status=eq.approved&published_at=not.is.null&order=published_at.desc&limit=1000';
- const response=await fetch(base+q,{headers:{apikey:key,Authorization:'Bearer '+key},signal:AbortSignal.timeout(30000)});
- if(!response.ok)throw new Error('Public approved jobs unavailable: HTTP '+response.status);
- const body=await response.json();
- if(!Array.isArray(body))throw new Error('Unexpected public jobs response');
- return body;
-}
+// Filesystem stage receives a finite validated JSON feed from the isolated,
+ // fixed-origin read-only fetch process. It never makes outbound requests.
 if(process.argv[1] && import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
- generate(fromPublicRead).catch(e=>{console.error('[job SEO generation]',e);process.exitCode=1;});
+ const input=[];
+ for await (const part of process.stdin) {
+   input.push(part);
+   if(input.reduce((sum,b)=>sum+b.length,0)>8_000_000)throw new Error('SEO input too large');
+ }
+ const rows=JSON.parse(Buffer.concat(input).toString('utf8'));
+ generate(async()=>rows).catch(e=>{console.error('[job SEO generation]',e);process.exitCode=1;});
 }
