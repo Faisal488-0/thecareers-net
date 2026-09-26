@@ -121,10 +121,10 @@ html body .row-opps #jobList>.tc-job-compact .job-meta .tc-meta-item:after{
   display:none!important;
 }
 #jobList>.tc-job-compact .tc-card-blurb{
-  display:-webkit-box;
-  -webkit-box-orient:vertical;
-  -webkit-line-clamp:3;
-  overflow:hidden;
+  /* Source-aware summary is already bounded; do not cut its last words. */
+  display:block!important;
+  -webkit-line-clamp:unset!important;
+  overflow:visible!important;
   margin:12px 0 0;
   color:#677181;
   font-size:11px;
