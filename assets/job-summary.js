@@ -5,7 +5,6 @@
   'use strict';
   const MAX_LENGTH = 138;
   const terminal = /[.!?؟؛。]$/u;
-  const dangling = /(?:\b(?:and|or|for|to|with|of|the|in|at|as|a|an|will|must|including|such as)\b|(?:و|في|من|إلى|على|مع|مثل|بما في ذلك))$/iu;
 
   function plainText(value) {
     return String(value || '')
@@ -31,10 +30,8 @@
       if (sentence.length < 28 || sentence.length > MAX_LENGTH) continue;
       if (/\.{2,}$|…$/u.test(sentence)) continue;
       if (terminal.test(sentence)) return sentence;
-      // Accept a short standalone statement even if the source omitted its period.
-      if (candidates.length === 1 && !dangling.test(sentence) && !/[:,،؛;\-–]$/u.test(sentence)) {
-        return sentence + '.';
-      }
+      // Unpunctuated source text can be an unfinished provider snippet.
+      // Prefer a truthful fallback over assuming it is a complete sentence.
     }
     // No sufficiently brief complete source sentence exists. Do NOT display a
     // partial sentence, fabricate duties or append an ellipsis. Explain where
