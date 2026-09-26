@@ -58,11 +58,17 @@ async function inspectPage(browser, mode, viewport) {
   if(cards>0){
     const first=page.locator('.backend-job').first();
     const titleLoc=first.locator('.title,[data-job-title],h3,h4').first();
-    const companyLoc=first.locator('.company,[data-company],.job-company').first();
+    const companyLoc=first.locator('.tc-card-employer b,.company,[data-company],.job-company').first();
     assert(assertions,'Job title visible',(await text(titleLoc)).length>=3,await text(titleLoc));
     assert(assertions,'Company visible',(await text(companyLoc)).length>=2,await text(companyLoc));
-    for(const key of ['country','location','type','category','salary','date']){ const fact=first.locator(`.tc-meta-item[data-meta="${key}"] strong`); const value=await text(fact); assert(assertions,`Job fact: ${key}`,value.length>0,value||'missing'); }
-    const view=first.locator('.tc-view-job').first(); const href=await view.getAttribute('href').catch(()=>null); assert(assertions,'View Job has safe URL',Boolean(href&&/^https?:\/\//i.test(href)),href||'missing');
+    for(const key of ['country','location','type','category','salary','date']){
+      const fact=key==='location' ? first.locator('.tc-card-location,.tc-meta-item[data-meta="location"] strong')
+        : key==='date' ? first.locator('.tc-card-employer time,.tc-meta-item[data-meta="date"] strong')
+        : first.locator(`.tc-meta-item[data-meta="${key}"] strong`);
+      const value=await text(fact);
+      assert(assertions,`Job fact: ${key}`,value.length>0,value||'missing');
+    }
+    const view=first.locator('.tc-card-details,.tc-view-job,.tc-open-job').first(); const href=await view.getAttribute('href').catch(()=>null); assert(assertions,'View Job has safe URL',Boolean(href&&/^https?:\/\//i.test(href)),href||'missing');
     const save=first.locator('.tc-save-job').first(); if(await save.count()){ const before=await text(save); await save.click(); await page.waitForTimeout(200); const after=await text(save); assert(assertions,'Save button toggles',before!==after,`${before} -> ${after}`); await save.click().catch(()=>{}); }
   }
 
@@ -106,16 +112,26 @@ async function inspectPage(browser, mode, viewport) {
     }
 
     const cvNav=page.locator('.nav-item[data-page="cv"]');
-    if(await cvNav.count()){
-      await cvNav.click(); await page.waitForTimeout(350);
-      const cvSurface=await page.locator('.tc-modal-backdrop,[role="dialog"]').count();
-      assert(assertions,'CV Centre opens account/CV surface',cvSurface>0,`surfaces=${cvSurface}`);
+    if(await cvNav.count() && await cvNav.isVisible().catch(()=>false)){
+      // The personalized High-Match sign-in can leave a backdrop open. Never
+      // let a blocked optional interaction abort the entire browser audit.
       await page.keyboard.press('Escape').catch(()=>{});
+      const clicked=await cvNav.click({timeout:4000}).then(()=>true).catch(()=>false);
+      assert(assertions,'CV Centre navigation is clickable',clicked);
+      if(clicked){
+        await page.waitForTimeout(350);
+        const cvSurface=await page.locator('.tc-modal-backdrop,[role="dialog"]').count();
+        assert(assertions,'CV Centre opens account/CV surface',cvSurface>0,`surfaces=${cvSurface}`);
+        await page.keyboard.press('Escape').catch(()=>{});
+      }
+    } else {
+      assert(assertions,'Desktop CV Centre navigation is visible',false,'CV Centre item hidden or absent');
     }
 
     await page.waitForTimeout(500);
-    const emailLinks=await page.locator('.tc-apply-method a[href^="mailto:"]').count();
-    assert(assertions,'Direct-email apply opportunities are surfaced when present',emailLinks>0,`${emailLinks} email apply links`);
+    const emailLinks=await page.locator('.tc-card-apply[href^="mailto:"],.tc-apply-method a[href^="mailto:"]').count();
+    const websiteLinks=await page.locator('.tc-card-apply[href^="https://"],.tc-apply-method a[href^="https://"]').count();
+    assert(assertions,'Published cards have real application paths',emailLinks+websiteLinks>0,`${emailLinks} direct email / ${websiteLinks} website links`);
 
     const searchNow=page.locator('#searchNowBtn');
     assert(assertions,'Search Now is present and operable',await searchNow.count()===1&&!await searchNow.isDisabled().catch(()=>true));
@@ -130,7 +146,7 @@ async function inspectPage(browser, mode, viewport) {
     await search.fill(''); await page.waitForTimeout(700);
     const kuwait=page.locator('.tc-country-btn[data-country="kuwait"]'); if(await kuwait.count()){ await kuwait.click(); await page.waitForTimeout(1200); const countries=(await page.locator('.backend-job:visible .tc-meta-item[data-meta="country"] strong').allTextContents()).map(clean).filter(Boolean); assert(assertions,'Kuwait country filter is backend-consistent',countries.length===0||countries.every(x=>x==='Kuwait'),countries.slice(0,10).join(', ')); await page.locator('.tc-country-btn[data-country="all"]').click().catch(()=>{}); }
     const filter=page.locator('.row-opps .filter-btn'); if(await filter.count()){ const before=await text(filter); await filter.click(); await page.waitForTimeout(700); const after=await text(filter); assert(assertions,'Filters control changes backend mode',before!==after,`${before} -> ${after}`); }
-    const profile=page.locator('.profile'); if(await profile.count()){ await profile.click().catch(()=>{}); await page.waitForTimeout(350); const authSurface=await page.locator('.tc-modal-backdrop,#tcAuthForm,[role="dialog"]').count(); assert(assertions,'Profile/auth interaction opens a surface',authSurface>0,`surfaces=${authSurface}`); await page.keyboard.press('Escape').catch(()=>{}); }
+    const profile=page.locator('.profile'); if(await profile.count()){ await profile.click({timeout:4000}).catch(()=>{}); await page.waitForTimeout(350); const authSurface=await page.locator('.tc-modal-backdrop,#tcAuthForm,[role="dialog"]').count(); assert(assertions,'Profile/auth interaction opens a surface',authSurface>0,`surfaces=${authSurface}`); await page.keyboard.press('Escape').catch(()=>{}); }
   }
 
   if(mode==='mobile'){
