@@ -1,6 +1,11 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { completeShortSummary: summary } = require('../assets/job-summary.js');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const sandbox = { window: {} };
+vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../assets/job-summary.js'), 'utf8'), sandbox);
+const summary = sandbox.window.TheCareersJobSummary;
 
 test('retains a complete short sentence without truncation', () => {
   const text = 'Organized admin assistant wanted for an established business in Salmiya. The candidate will coordinate several projects and tasks.';
