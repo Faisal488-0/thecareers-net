@@ -39,6 +39,9 @@ jobs:
         if: steps.gate.outputs.publish == 'true'
         with:
           node-version: '22'
+      - name: Install pinned package-lock dependencies for safe HTML parsing
+        if: steps.gate.outputs.publish == 'true'
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Restore prior per-job lastmod (only update changed HTML)
         if: steps.gate.outputs.publish == 'true'
         uses: actions/cache@v4
@@ -49,7 +52,14 @@ jobs:
             thecareers-seo-pages-
       - name: Generate approved live job leaf pages and sitemap
         if: steps.gate.outputs.publish == 'true'
-        run: node scripts/generate-job-pages.mjs
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The publishable key is already shipped to browsers by config.js.
+          # Pass it in memory; the trusted fetcher is restricted to our fixed host.
+          export THECAREERS_SEO_PUBLIC_KEY="$(node -e 'const s=require("fs").readFileSync("config.js","utf8");const m=s.match(/SUPABASE_PUBLISHABLE_KEY:"([^"]+)"/);if(!m)process.exit(1);process.stdout.write(m[1])')"
+          node scripts/fetch-approved-seo-jobs.mjs > /tmp/thecareers-approved-seo.json
+          node scripts/generate-job-pages.mjs < /tmp/thecareers-approved-seo.json
       - name: Prepare unchanged production homepage
         if: steps.gate.outputs.publish == 'true'
         run: node scripts/production-html-fix.mjs
