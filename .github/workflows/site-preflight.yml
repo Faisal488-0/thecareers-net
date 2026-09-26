@@ -18,7 +18,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install lockfile dependencies for SEO parsing tests
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Validate complete card descriptions
-        run: node --check assets/job-summary.js && node --check assets/backend-bridge.js && node --test tests/job-summary.test.cjs
+        run: node --check assets/job-summary.js && node --check assets/backend-bridge.js && node --check scripts/generate-job-pages.mjs && node --check scripts/fetch-approved-seo-jobs.mjs && node --test tests/job-summary.test.cjs tests/job-pages-seo.test.mjs
       - name: Run website preflight
         run: node scripts/site-preflight.mjs
