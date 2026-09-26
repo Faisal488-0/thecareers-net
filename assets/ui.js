@@ -3,17 +3,10 @@ const sources=[
 {name:'Company Websites',base:58},{name:'Job Boards',base:42},{name:'LinkedIn',base:38},{name:'Government Portals',base:24},
 {name:'Recruitment Agencies',base:36},{name:'University Career Portals',base:19},{name:'News & Media',base:18},{name:'Direct Company Careers',base:12}
 ];
-const jobs=[
-{title:'HR Generalist',company:'Kuwait Petroleum Corporation (KPC)',loc:'Kuwait City, Kuwait',type:'Full-time',cat:'HR',pct:92,badge:'high',time:'2 hours ago',ini:'KPC',color:'#1fb567'},
-{title:'Operations Specialist',company:'Agility – Global Integrated Logistics',loc:'Kuwait City, Kuwait',type:'Full-time',cat:'Operations',pct:87,badge:'verified',time:'5 hours ago',ini:'A',color:'#2f6feb'},
-{title:'Administrative Officer',company:'Ministry of Education – Kuwait',loc:'Kuwait City, Kuwait',type:'Full-time',cat:'Administration',pct:84,badge:'new',time:'7 hours ago',ini:'M',color:'#8a8f96'},
-{title:'Recruitment Coordinator',company:'Talent World Group',loc:'Kuwait City, Kuwait',type:'Full-time',cat:'HR',pct:82,badge:'high',time:'9 hours ago',ini:'C',color:'#e0912b'},
-{title:'HSE Officer',company:'Kuwait Energy',loc:'Ahmadi, Kuwait',type:'Full-time',cat:'Oil & Gas',pct:80,badge:'new',time:'10 hours ago',ini:'KE',color:'#0b0c0e'}
-];
-const sectors=[
-{name:'Oil & Gas',pct:28,color:'#0b0c0e'},{name:'Administration',pct:18,color:'#2f6feb'},{name:'HR',pct:14,color:'#1fb567'},{name:'Operations',pct:12,color:'#e0912b'},
-{name:'Engineering',pct:9,color:'#7c5cff'},{name:'Finance',pct:8,color:'#e15c7a'},{name:'IT & Technology',pct:7,color:'#17b8c4'},{name:'Others',pct:4,color:'#c7cbd1'}
-];
+// Live vacancies are populated only by the verified backend; never invent examples.
+const jobs=[];
+// Sector breakdown is rebuilt from verified live vacancies.
+const sectors=[];
 const activityMsgs=['Searching companies in Kuwait','Scanning oil & gas sector jobs','Checking new government vacancies','Searching administration roles','Scanning HR opportunities','Analyzing company career pages','Fetching verified job postings','Searching operations positions','Checking university career portals','Monitoring new job alerts','Filtering and ranking results','Updating relevance scores','Cross-referencing salary bands','Deduplicating listings','Verifying company legitimacy','Indexing new employer pages','Matching skills to openings','Refreshing recruiter feeds'];
 const dotClasses=['g','g','b','g','a','g'];
 const toast=document.getElementById('toast'),toastText=document.getElementById('toastText');
@@ -27,6 +20,7 @@ const jobList=document.getElementById('jobList');
 function badgeMeta(b){if(b==='high')return{cls:'high',label:'High Match'};if(b==='verified')return{cls:'verified',label:'Verified'};return{cls:'new',label:'New'};}
 function renderJobs(rows=jobs){if(!jobList)return;jobList.innerHTML=rows.map((j,i)=>{const bm=badgeMeta(j.badge);return `<div class="job-row" data-local-job="${i}" data-category="${j.cat}" data-score="${j.pct}"><div class="job-logo" style="background:${j.color}">${j.ini}</div><div class="job-main"><div class="title">${j.title}</div><div class="company">${j.company}</div><div class="job-meta"><span>📍 ${j.loc}</span><span>🕐 ${j.type}</span><span>▤ ${j.cat}</span></div></div><div class="job-score"><div class="pct">${j.pct}%</div><div class="lbl">Relevance</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;"><span class="badge ${bm.cls}">${bm.label}</span><span class="job-time">${j.time}</span></div><div class="job-actions"><button class="icon-btn save-job" type="button" title="Save job" aria-label="Save job">🔖</button><button class="icon-btn job-more" type="button" title="Job details" aria-label="Job details">⋯</button></div></div>`;}).join('');}
 renderJobs();
+if(jobList&&!jobs.length)jobList.innerHTML='<div class="jobs-empty-state tc-job-note" role="status">Loading verified vacancies…</div>';
 document.addEventListener('click',e=>{const save=e.target.closest('.save-job');if(save){save.classList.toggle('saved');save.textContent=save.classList.contains('saved')?'✓':'🔖';notify(save.classList.contains('saved')?'JOB SAVED':'REMOVED FROM SAVED');return;}const more=e.target.closest('.job-more');if(more){const row=more.closest('.job-row'),title=row?.querySelector('.title')?.textContent||'Job';notify(`${title} — DETAILS READY`);row?.scrollIntoView({behavior:'smooth',block:'center'});}});
 
 const legend=document.getElementById('sectorLegend');if(legend)legend.innerHTML=sectors.map(s=>`<div class="leg-row" data-sector="${s.name}" role="button" tabindex="0"><div class="name"><span class="sw" style="background:${s.color}"></span>${s.name}</div><div class="pct">${s.pct}%</div></div>`).join('');
@@ -82,10 +76,8 @@ if(netCanvas){
 }
 
 const activityList=document.getElementById('activityList');
-function timeStr(){return new Date().toTimeString().slice(0,8);}function pushActivity(msg){if(!activityList)return;const row=document.createElement('div');row.className='activity-row';const dc=dotClasses[Math.floor(Math.random()*dotClasses.length)];row.innerHTML=`<span class="t">${timeStr()}</span><span class="m">${msg}</span><span class="d ${dc}"></span>`;activityList.insertBefore(row,activityList.firstChild);while(activityList.children.length>12)activityList.removeChild(activityList.lastChild);}window.pushActivity=pushActivity;for(let i=0;i<8;i++)pushActivity(activityMsgs[i%activityMsgs.length]);setInterval(()=>pushActivity(activityMsgs[Math.floor(Math.random()*activityMsgs.length)]),2600);
-function animateCount(el,target,opts={}){if(!el)return;const dur=opts.dur||1400,suffix=opts.suffix||'',start=performance.now();function step(now){const p=Math.min(1,(now-start)/dur),e=1-Math.pow(1-p,3),v=Math.round(target*e);el.textContent=v.toLocaleString()+suffix;if(p<1)requestAnimationFrame(step);}requestAnimationFrame(step);}animateCount(document.getElementById('metricPages'),1248931);animateCount(document.getElementById('metricOpps'),3472);animateCount(document.getElementById('statJobs'),3472);animateCount(document.getElementById('statHigh'),1028);animateCount(document.getElementById('statApps'),12);
-const uptime=document.getElementById('metricUptime');if(uptime){const start=performance.now();(function step(now){const p=Math.min(1,(now-start)/1400),e=1-Math.pow(1-p,3);uptime.textContent=(98.6*e).toFixed(1)+'%';if(p<1)requestAnimationFrame(step);})(start);}
-setInterval(()=>{sources.forEach(s=>{if(Math.random()<.6)s.count+=Math.random()<.5?1:0;});renderSources();const total=247+Math.floor(Math.random()*3),scan=document.getElementById('scanCount'),bar=document.getElementById('scanBar');if(scan)scan.innerHTML=total+'<span>/ 300</span>';if(bar)bar.style.width=Math.min(100,total/300*100)+'%';},3000);
+function timeStr(){return new Date().toTimeString().slice(0,8);}function pushActivity(msg){if(!activityList)return;const row=document.createElement('div');row.className='activity-row';const dc=dotClasses[Math.floor(Math.random()*dotClasses.length)];row.innerHTML=`<span class="t">${timeStr()}</span><span class="m">${msg}</span><span class="d ${dc}"></span>`;activityList.insertBefore(row,activityList.firstChild);while(activityList.children.length>12)activityList.removeChild(activityList.lastChild);}window.pushActivity=pushActivity;
+function animateCount(el,target,opts={}){if(!el)return;const dur=opts.dur||1400,suffix=opts.suffix||'',start=performance.now();function step(now){const p=Math.min(1,(now-start)/dur),e=1-Math.pow(1-p,3),v=Math.round(target*e);el.textContent=v.toLocaleString()+suffix;if(p<1)requestAnimationFrame(step);}requestAnimationFrame(step);}// Counts, source status and activity are derived from live backend responses only.
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');const mode=t.dataset.tab;let rows=jobs;if(mode==='high')rows=jobs.filter(j=>j.pct>=85);if(mode==='new')rows=jobs.filter(j=>j.badge==='new');if(mode==='saved')rows=[];renderJobs(rows);notify(`${t.textContent.trim()} SELECTED`);}));
 const navTargets={dashboard:'.content',jobs:'.row-opps',search:'.row-core',companies:'.sources-scan',cv:'.workflow',settings:'.sidebar'};
