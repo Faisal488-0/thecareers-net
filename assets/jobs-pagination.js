@@ -271,6 +271,11 @@
   function getList(){return document.getElementById('jobList');}
   function allRows(){return Array.from(getList()?.querySelectorAll(':scope > .backend-job')||[]);}
   function rowLocation(row){
+    // Level-6 compact cards keep location outside the fact rows.
+    const compact=row.querySelector('.tc-card-location')?.textContent;
+    if(compact) return clean(compact);
+    const dedicated=row.querySelector('.tc-meta-item[data-meta="location"] strong')?.textContent;
+    if(dedicated) return clean(dedicated);
     const first=row.querySelector('.job-meta span:first-child')?.textContent||'';
     return clean(first.replace(/^[\s📍]+/u,''));
   }
@@ -286,7 +291,7 @@
       for(const row of Array.from(list.querySelectorAll(':scope > .backend-job'))){
         const main=row.querySelector('.job-main');
         const titleEl=main?.querySelector('.title');
-        const companyEl=main?.querySelector('.company');
+        const companyEl=main?.querySelector('.company') || row.querySelector('.tc-card-employer b');
         const title=sanitizeTitle(titleEl?.textContent||'');
         const company=clean(companyEl?.textContent||'');
         const locationText=rowLocation(row);
@@ -309,6 +314,10 @@
         row.removeAttribute('tabindex');
         row.setAttribute('role','article');
         row.setAttribute('aria-label',`${title} at ${company}`);
+
+        // Compact cards have accessible native links and a dedicated CTA order.
+        // The legacy row enhancer would rename and reposition their actions.
+        if(row.classList.contains('tc-job-compact')) continue;
 
         const scoreLabel=row.querySelector('.job-score .lbl');
         if(scoreLabel)scoreLabel.textContent='Match Score';
