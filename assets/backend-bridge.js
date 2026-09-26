@@ -18,6 +18,7 @@
   const savedKey = 'thecareers_saved_job_ids_v2';
 
   let latestJobs = [];
+  const animatedJobIds = new Set();
   let activeTab = document.querySelector('.tab.active')?.dataset.tab || 'all';
   let filterMode = 'all';
   let sortMode = 'newest';
@@ -178,7 +179,7 @@
     }
 
     const saved = getSaved();
-    const html = rows.map(j => {
+    const html = rows.map((j, index) => {
       const pct = Math.max(0, Math.min(100, Number(j.score || 0)));
       const badgeClass = j.verified ? 'verified' : (pct >= 70 ? 'high' : 'new');
       const badgeLabel = j.verified ? 'Verified' : (pct >= 70 ? 'High Match' : 'New');
@@ -194,7 +195,10 @@
       const url = safeJobUrl(j.url);
       const id = String(j.id || url);
       const isSaved = saved.has(id) || saved.has(url);
-      return `<div class="job-row backend-job" data-job-id="${escapeHtml(id)}" data-job-url="${escapeHtml(url)}" tabindex="0" role="link" aria-label="Open ${title} at ${company}">
+      const hasSalary = Number(j.salary_min || 0) > 0 || Number(j.salary_max || 0) > 0;
+      const firstDisplay = !animatedJobIds.has(id);
+      if (firstDisplay) animatedJobIds.add(id);
+      return `<div class="job-row backend-job tc-job-level6${hasSalary ? ' tc-has-salary' : ''}${firstDisplay ? ' tc-job-enter' : ''}" style="--tc-enter-delay:${Math.min(index,9)*40}ms" data-job-id="${escapeHtml(id)}" data-job-url="${escapeHtml(url)}" tabindex="0" role="link" aria-label="Open ${title} at ${company}">
         <div class="job-logo" style="background:#2f6feb">${initials}</div>
         <div class="job-main">
           <div class="title">${title}</div>
@@ -210,7 +214,7 @@
         </div>
         <div class="job-score"><div class="pct">${pct}%</div><div class="lbl">Match Score</div></div>
         <div class="tc-job-status" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><span class="badge ${badgeClass}">${badgeLabel}</span></div>
-        <div class="job-actions"><button class="icon-btn tc-save-job${isSaved ? ' tc-saved' : ''}" type="button" title="${isSaved ? 'Remove saved job' : 'Save job'}" aria-label="${isSaved ? 'Remove saved job' : 'Save job'}">${isSaved ? '✓' : '🔖'}</button><a class="icon-btn tc-open-job" title="Open official job page" aria-label="Open official job page" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">↗</a></div>
+        <div class="job-actions"><button class="icon-btn tc-save-job${isSaved ? ' tc-saved' : ''}" type="button" title="${isSaved ? 'Remove saved job' : 'Save job'}" aria-label="${isSaved ? 'Remove saved job' : 'Save job'}">${isSaved ? '✓' : '🔖'}</button><a class="icon-btn tc-open-job" title="Open official job page" aria-label="Open official job page" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open job ↗</a></div>
       </div>`;
     }).join('');
     list.innerHTML = html;
@@ -218,7 +222,7 @@
     list.querySelectorAll('.backend-job').forEach(row => {
       const open = () => { const u = safeJobUrl(row.dataset.jobUrl); if (u) window.open(u, '_blank', 'noopener,noreferrer'); };
       row.addEventListener('click', e => { if (!e.target.closest('a,button')) open(); });
-      row.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); open(); } });
+      row.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === row) { e.preventDefault(); open(); } });
     });
     list.querySelectorAll('.tc-save-job').forEach(btn => {
       btn.addEventListener('click', e => {
