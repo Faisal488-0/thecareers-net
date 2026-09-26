@@ -179,8 +179,8 @@
     }
 
     const saved = getSaved();
+    const summaryFn = typeof window.TheCareersJobSummary === 'function' ? window.TheCareersJobSummary : null;
     const html = rows.map((j, index) => {
-      const pct = Math.max(0, Math.min(100, Number(j.score || 0)));
       const company = escapeHtml(j.company);
       const title = escapeHtml(j.title);
       const location = escapeHtml(j.location || j.effective_country || 'Not specified');
@@ -189,41 +189,40 @@
       const cat = escapeHtml(j.category || sectorOf(j));
       const salary = escapeHtml(salaryText(j));
       const posted = escapeHtml(jobTime(j));
-      const initials = escapeHtml(j.company.split(/\s+/).map(x=>x[0]).join('').slice(0,3).toUpperCase());
-      const description = escapeHtml(window.TheCareersJobSummary(j.description, {title: j.title, company: j.company, lang: 'en'}));
+      const initials = escapeHtml(j.company.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase());
+      // The optional summary asset must never make all valid cards disappear.
+      const summary = summaryFn ? summaryFn(j.description, {title:j.title, company:j.company, lang:'en'})
+        : 'Read the original posting for complete responsibilities.';
+      const description = escapeHtml(summary);
       const url = safeJobUrl(j.url);
       const id = String(j.id || url);
       const isSaved = saved.has(id) || saved.has(url);
       const isDirectEmail = j.apply_method === 'email' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean(j.application_email));
-      const applyHref = isDirectEmail ? 'mailto:' + encodeURIComponent(clean(j.application_email)) + '?subject=' + encodeURIComponent('Application - ' + j.title) : url;
+      const applyHref = isDirectEmail ? 'mailto:' + encodeURIComponent(clean(j.application_email))
+        + '?subject=' + encodeURIComponent('Application - ' + j.title) : url;
       const hasSalary = Number(j.salary_min || 0) > 0 || Number(j.salary_max || 0) > 0;
       const firstDisplay = !animatedJobIds.has(id);
       if (firstDisplay) animatedJobIds.add(id);
-      const animClass = firstDisplay ? ' tc-job-enter' : '';
-      const savedClass = isSaved ? ' tc-saved' : '';
-      const savedLabel = isSaved ? 'Remove saved job' : 'Save job';
-      return `<article class="job-row backend-job tc-job-level6 tc-job-compact${hasSalary ? ' tc-has-salary' : ''}${animClass}" style="--tc-enter-delay:${Math.min(index,9)*40}ms" data-job-id="${escapeHtml(id)}" data-job-url="${escapeHtml(url)}">
+      return `<article class="card backend-job tc-job-level6 tc-job-compact${hasSalary ? ' tc-job-salary-known' : ''}${firstDisplay ? ' tc-job-enter' : ''}"
+        style="--tc-enter-delay:${Math.min(index,9)*40}ms" data-job-id="${escapeHtml(id)}" data-job-url="${escapeHtml(url)}">
         <div class="tc-card-header">
-          <div class="job-logo">${initials}</div>
+          <div class="seal" aria-hidden="true">${initials}</div>
           <div class="tc-card-employer"><b>${company}</b><time>${posted}</time></div>
-          <span class="badge verified">Verified</span>
+          <button class="tc-save-job${isSaved ? ' tc-saved' : ''}" type="button" title="${isSaved ? 'Remove saved job' : 'Save job'}" aria-label="${isSaved ? 'Remove saved job' : 'Save job'}">${isSaved ? '✓' : '☆'}</button>
         </div>
         <div class="job-main">
-          <h3 class="title">${title}</h3>
-          <div class="tc-card-location">${location}</div>
-          <div class="job-meta tc-job-facts">
-            <span class="tc-meta-item tc-meta-salary" data-meta="salary"><small>Pay</small><strong>${salary}</strong></span>
-            <span class="tc-meta-item" data-meta="type"><small>Job type</small><strong>${type}</strong></span>
-            <span class="tc-meta-item" data-meta="country"><small>Country</small><strong>${country}</strong></span>
-            <span class="tc-meta-item" data-meta="category"><small>Category</small><strong>${cat}</strong></span>
+          <div class="tc-card-role"><h3 class="title">${title}</h3><span class="tc-card-location">${location}</span></div>
+          <div class="tc-card-facts">
+            <div><span>Pay</span><b>${salary}</b></div>
+            <div><span>Job type</span><b>${type}</b></div>
+            <div><span>Setting</span><b>Not specified</b></div>
           </div>
           <p class="tc-card-blurb">${description}</p>
         </div>
-        <div class="job-score" aria-label="Relevance score ${pct} percent"><span class="pct">${pct}%</span><span class="lbl">Relevance</span></div>
-        <div class="job-actions">
-          <a class="tc-card-apply" href="${escapeHtml(applyHref)}" ${isDirectEmail ? '' : 'target="_blank" rel="noopener noreferrer nofollow"'}>${isDirectEmail ? 'Apply by email' : 'Apply / Source'}</a>
+        <div class="tc-card-tags"><span>${country}</span><span>${cat}</span></div>
+        <div class="card-actions">
+          <a class="apply tc-card-apply" href="${escapeHtml(applyHref)}" ${isDirectEmail ? '' : 'target="_blank" rel="noopener noreferrer nofollow"'}>${isDirectEmail ? 'Apply by email' : 'Apply via source'}</a>
           <a class="tc-card-details tc-open-job" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer nofollow">View details</a>
-          <button class="tc-save-job${savedClass}" type="button" title="${savedLabel}" aria-label="${savedLabel}">${isSaved ? '✓' : '☆'}</button>
         </div>
       </article>`;
     }).join('');
@@ -292,7 +291,8 @@
     const approvedById = new Map((approvedRows || []).map(j => [String(j.id), j]));
     if(seq!==jobLoadSeq)return;
     latestJobs=(rows||[]).filter(j=>j?.verified===true && approvedById.has(String(j.id)))
-      .map(j=>({...j,...approvedById.get(String(j.id))}));updateTabCounts();updateMetrics();updateSectorUI();renderJobs();
+      .map(j=>({...j,...approvedById.get(String(j.id))}));
+    renderJobs();updateTabCounts();updateMetrics();updateSectorUI();
     document.dispatchEvent(new CustomEvent('tc:job-search-results',{detail:{query:clean(searchQuery),count:validJobs(latestJobs).length,country:countryFilter,filter:filterMode,sector:sectorFilter,sort:sortMode}}));
   }
 
