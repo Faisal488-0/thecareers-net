@@ -103,7 +103,7 @@
     return (rows || []).filter(j => {
       const url = safeJobUrl(j.url);
       const title = specificTitle(j.title);
-      if (!url || !title) return false;
+      if (!url || !title || !clean(j.company) || j.quality_status !== 'approved') return false;
       const key = `${clean(j.title).toLowerCase()}|${clean(j.company).toLowerCase()}|${url}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -181,49 +181,55 @@
     const saved = getSaved();
     const html = rows.map((j, index) => {
       const pct = Math.max(0, Math.min(100, Number(j.score || 0)));
-      const badgeClass = j.verified ? 'verified' : (pct >= 70 ? 'high' : 'new');
-      const badgeLabel = j.verified ? 'Verified' : (pct >= 70 ? 'High Match' : 'New');
-      const company = escapeHtml(j.company || 'Unknown company');
-      const title = escapeHtml(j.title || 'Untitled role');
-      const effectiveCountry = escapeHtml(j.effective_country || j.country || 'International');
+      const company = escapeHtml(j.company);
+      const title = escapeHtml(j.title);
       const location = escapeHtml(j.location || j.effective_country || 'Not specified');
       const type = escapeHtml(j.employment_type || 'Not specified');
+      const country = escapeHtml(j.effective_country || j.country || 'Not specified');
       const cat = escapeHtml(j.category || sectorOf(j));
       const salary = escapeHtml(salaryText(j));
       const posted = escapeHtml(jobTime(j));
-      const initials = escapeHtml((j.company || 'TC').split(/\s+/).map(x=>x[0]).join('').slice(0,3).toUpperCase());
+      const initials = escapeHtml(j.company.split(/\s+/).map(x=>x[0]).join('').slice(0,3).toUpperCase());
+      const description = escapeHtml(clean(j.description).replace(/<[^>]+>/g, '').slice(0,220));
       const url = safeJobUrl(j.url);
       const id = String(j.id || url);
       const isSaved = saved.has(id) || saved.has(url);
+      const isDirectEmail = j.apply_method === 'email' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean(j.application_email));
+      const applyHref = isDirectEmail ? 'mailto:' + encodeURIComponent(clean(j.application_email)) + '?subject=' + encodeURIComponent('Application - ' + j.title) : url;
       const hasSalary = Number(j.salary_min || 0) > 0 || Number(j.salary_max || 0) > 0;
       const firstDisplay = !animatedJobIds.has(id);
       if (firstDisplay) animatedJobIds.add(id);
-      return `<div class="job-row backend-job tc-job-level6${hasSalary ? ' tc-has-salary' : ''}${firstDisplay ? ' tc-job-enter' : ''}" style="--tc-enter-delay:${Math.min(index,9)*40}ms" data-job-id="${escapeHtml(id)}" data-job-url="${escapeHtml(url)}" tabindex="0" role="link" aria-label="Open ${title} at ${company}">
-        <div class="job-logo" style="background:#2f6feb">${initials}</div>
-        <div class="job-main">
-          <div class="title">${title}</div>
-          <div class="company">${company}</div>
-          <div class="job-meta tc-job-facts">
-            <span class="tc-meta-item" data-meta="country"><small>COUNTRY</small><strong>${effectiveCountry}</strong></span>
-            <span class="tc-meta-item" data-meta="location"><small>LOCATION</small><strong>${location}</strong></span>
-            <span class="tc-meta-item" data-meta="type"><small>EMPLOYMENT TYPE</small><strong>${type}</strong></span>
-            <span class="tc-meta-item" data-meta="category"><small>CATEGORY</small><strong>${cat}</strong></span>
-            <span class="tc-meta-item tc-meta-salary" data-meta="salary"><small>SALARY RANGE</small><strong>${salary}</strong></span>
-            <span class="tc-meta-item" data-meta="date"><small>DATE POSTED</small><strong>${posted}</strong></span>
-          </div>
+      const animClass = firstDisplay ? ' tc-job-enter' : '';
+      const savedClass = isSaved ? ' tc-saved' : '';
+      const savedLabel = isSaved ? 'Remove saved job' : 'Save job';
+      return `<article class="job-row backend-job tc-job-level6 tc-job-compact${hasSalary ? ' tc-has-salary' : ''}${animClass}" style="--tc-enter-delay:${Math.min(index,9)*40}ms" data-job-id="${escapeHtml(id)}" data-job-url="${escapeHtml(url)}">
+        <div class="tc-card-header">
+          <div class="job-logo">${initials}</div>
+          <div class="tc-card-employer"><b>${company}</b><time>${posted}</time></div>
+          <span class="badge verified">Verified</span>
         </div>
-        <div class="job-score"><div class="pct">${pct}%</div><div class="lbl">Match Score</div></div>
-        <div class="tc-job-status" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><span class="badge ${badgeClass}">${badgeLabel}</span></div>
-        <div class="job-actions"><button class="icon-btn tc-save-job${isSaved ? ' tc-saved' : ''}" type="button" title="${isSaved ? 'Remove saved job' : 'Save job'}" aria-label="${isSaved ? 'Remove saved job' : 'Save job'}">${isSaved ? '✓' : '🔖'}</button><a class="icon-btn tc-open-job" title="Open official job page" aria-label="Open official job page" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open job ↗</a></div>
-      </div>`;
+        <div class="job-main">
+          <h3 class="title">${title}</h3>
+          <div class="tc-card-location">${location}</div>
+          <div class="job-meta tc-job-facts">
+            <span class="tc-meta-item tc-meta-salary" data-meta="salary"><small>Pay</small><strong>${salary}</strong></span>
+            <span class="tc-meta-item" data-meta="type"><small>Job type</small><strong>${type}</strong></span>
+            <span class="tc-meta-item" data-meta="country"><small>Country</small><strong>${country}</strong></span>
+            <span class="tc-meta-item" data-meta="category"><small>Category</small><strong>${cat}</strong></span>
+          </div>
+          ${description ? `<p class="tc-card-blurb">${description}</p>` : ''}
+        </div>
+        <div class="job-score" aria-label="Relevance score ${pct} percent"><span class="pct">${pct}%</span><span class="lbl">Relevance</span></div>
+        <div class="job-actions">
+          <a class="tc-card-apply" href="${escapeHtml(applyHref)}" ${isDirectEmail ? '' : 'target="_blank" rel="noopener noreferrer nofollow"'}>${isDirectEmail ? 'Apply by email' : 'Apply / Source'}</a>
+          <a class="tc-card-details tc-open-job" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer nofollow">View details</a>
+          <button class="tc-save-job${savedClass}" type="button" title="${savedLabel}" aria-label="${savedLabel}">${isSaved ? '✓' : '☆'}</button>
+        </div>
+      </article>`;
     }).join('');
     list.innerHTML = html;
 
-    list.querySelectorAll('.backend-job').forEach(row => {
-      const open = () => { const u = safeJobUrl(row.dataset.jobUrl); if (u) window.open(u, '_blank', 'noopener,noreferrer'); };
-      row.addEventListener('click', e => { if (!e.target.closest('a,button')) open(); });
-      row.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === row) { e.preventDefault(); open(); } });
-    });
+    // Each card has explicit links and controls; no nested role=link or duplicate click targets.
     list.querySelectorAll('.tc-save-job').forEach(btn => {
       btn.addEventListener('click', e => {
         e.preventDefault(); e.stopPropagation();
@@ -277,10 +283,16 @@
       rows=await rpc('search_jobs_by_role_v2',{p_query:clean(searchQuery),p_limit:500,p_country:countryFilter||'all',p_filter:filterMode||'all',p_sector:sectorFilter||'',p_sort:sortMode||'newest'});
     } catch (err) {
       console.warn('[TheCareers] role-search RPC fallback',err);
-      rows=await rest('jobs?select=id,title,company,location,country,employment_type,category,salary_min,salary_max,currency,score,verified,published_at,found_at,url,source_name&status=eq.active&verified=eq.true&url=not.is.null&order=published_at.desc.nullslast,found_at.desc.nullslast&limit=500');
+      rows=await rest('jobs?select=id,title,company,location,country,employment_type,category,salary_min,salary_max,currency,score,verified,published_at,found_at,url,source_name,quality_status&status=eq.active&verified=eq.true&quality_status=eq.approved&url=not.is.null&order=published_at.desc.nullslast,found_at.desc.nullslast&limit=500');
     }
+    // The RPC supports role relevance but does not include quality approval,
+    // verified application email, or description. Enrich from the public,
+    // approved-only read view and fail closed when that check cannot complete.
+    const approvedRows = await rest('jobs?select=id,description,application_email,apply_method,quality_status&status=eq.active&verified=eq.true&quality_status=eq.approved&order=found_at.desc&limit=1000');
+    const approvedById = new Map((approvedRows || []).map(j => [String(j.id), j]));
     if(seq!==jobLoadSeq)return;
-    latestJobs=(rows||[]).filter(j=>j?.verified===true);updateTabCounts();updateMetrics();updateSectorUI();renderJobs();
+    latestJobs=(rows||[]).filter(j=>j?.verified===true && approvedById.has(String(j.id)))
+      .map(j=>({...j,...approvedById.get(String(j.id))}));updateTabCounts();updateMetrics();updateSectorUI();renderJobs();
     document.dispatchEvent(new CustomEvent('tc:job-search-results',{detail:{query:clean(searchQuery),count:validJobs(latestJobs).length,country:countryFilter,filter:filterMode,sector:sectorFilter,sort:sortMode}}));
   }
 
