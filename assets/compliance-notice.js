@@ -64,19 +64,11 @@ if(document.querySelector('script[data-tc-job-filters-net]'))return;
 const s=document.createElement('script');
 s.dataset.tcJobFiltersNet='1';
 const base=document.currentScript?.src||location.href;
-s.src=new URL('./job-filters-panel.js?v=20260920-sidebar4',base).href;
+s.src=new URL('./job-filters-panel.js?v=20260926-orgparity4',base).href;
 s.async=false;
 s.addEventListener('error',()=>console.error('[TheCareers] Job filters failed to load'));
 document.head.appendChild(s);
 })();
 
-(()=>{'use strict';
-if(document.querySelector('script[data-tc-apply-methods]'))return;
-const s=document.createElement('script');
-s.dataset.tcApplyMethods='1';
-const base=document.currentScript?.src||location.href;
-s.src=new URL('./apply-method-overlay.js',base).href;
-s.defer=true;
-s.addEventListener('error',()=>console.error('[TheCareers] Apply method overlay failed to load'));
-document.head.appendChild(s);
-})();
+/* The live approved feed now owns application methods and source links.
+   Never let the legacy overlay replace View details with a mailto link. */
