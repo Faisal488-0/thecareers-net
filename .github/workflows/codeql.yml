@@ -25,3 +25,25 @@ jobs:
           queries: security-extended
       - name: Analyze
         uses: github/codeql-action/analyze@6f5948dfacef28e207b48d0905cf90c03365536d
+        with:
+          output: ./codeql-results
+      - name: Summarize CodeQL locations for secure remediation
+        if: always()
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),path=require('path');
+          const dir='codeql-results';
+          if(!fs.existsSync(dir)){console.log('SARIF not generated');process.exit(0);}
+          for(const file of fs.readdirSync(dir).filter(f=>f.endsWith('.sarif'))){
+            const data=JSON.parse(fs.readFileSync(path.join(dir,file),'utf8'));
+            for(const run of data.runs||[]){
+              for(const result of run.results||[]){
+                const loc=result.locations?.[0]?.physicalLocation||{};
+                const uri=loc.artifactLocation?.uri||'unknown';
+                const line=loc.region?.startLine||'?';
+                console.log('CodeQL '+result.ruleId+' '+uri+':'+line+' - '+String(result.message?.text||'').slice(0,250));
+              }
+            }
+          }
+          NODE
