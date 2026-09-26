@@ -2,6 +2,10 @@ name: Deploy TheCareers frontend
 on:
   push:
     branches: [main]
+  # Every 5 elapsed hours, offset from the existing collector, even at midnight.
+  # The cheap hour gate also handles the day-boundary without a four-hour gap.
+  schedule:
+    - cron: '42 * * * *'
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,13 +21,45 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+      - name: Select the continuous five-hour publishing slot
+        id: gate
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          hour=$(( $(date -u +%s) / 3600 ))
+          if [ "$EVENT_NAME" != "schedule" ] || [ "$(( hour % 5 ))" -eq 0 ]; then
+            echo 'publish=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'publish=false' >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v4
-      - name: Prepare production HTML
+        if: steps.gate.outputs.publish == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.publish == 'true'
+        with:
+          node-version: '22'
+      - name: Restore prior per-job lastmod (only update changed HTML)
+        if: steps.gate.outputs.publish == 'true'
+        uses: actions/cache@v4
+        with:
+          path: data/job-pages-state.json
+          key: thecareers-seo-pages-${{ github.run_id }}
+          restore-keys: |
+            thecareers-seo-pages-
+      - name: Generate approved live job leaf pages and sitemap
+        if: steps.gate.outputs.publish == 'true'
+        run: node scripts/generate-job-pages.mjs
+      - name: Prepare unchanged production homepage
+        if: steps.gate.outputs.publish == 'true'
         run: node scripts/production-html-fix.mjs
       - uses: actions/configure-pages@v5
+        if: steps.gate.outputs.publish == 'true'
       - uses: actions/upload-pages-artifact@v3
+        if: steps.gate.outputs.publish == 'true'
         with:
           path: '.'
       - name: Deploy
+        if: steps.gate.outputs.publish == 'true'
         id: deployment
         uses: actions/deploy-pages@v4
