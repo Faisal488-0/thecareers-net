@@ -35,6 +35,11 @@ async function inspectPage(browser, mode, viewport) {
   await page.locator('.backend-job').first().waitFor({state:'attached',timeout:20000}).catch(()=>{});
   const cards=await page.locator('.backend-job').count(); assert(assertions,'Live job cards loaded',cards>0,`${cards} cards in DOM`);
   const visibleInitial=await page.locator('.backend-job:visible').count();
+  if(mode==='desktop'&&cards>1){
+    const cols=await page.locator('#jobList').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length);
+    assert(assertions,'ORG-parity two-column card grid',cols===2,`${cols} columns`);
+  }
+
   assert(assertions,'Exactly 10 or fewer job cards visible per page',visibleInitial>0&&visibleInitial<=10,`${visibleInitial} visible cards`);
   if(cards>10) assert(assertions,'Normal job page is capped at 10 cards',visibleInitial===10,`${visibleInitial} visible of ${cards} DOM cards`);
 
@@ -61,13 +66,24 @@ async function inspectPage(browser, mode, viewport) {
     const companyLoc=first.locator('.tc-card-employer b,.company,[data-company],.job-company').first();
     assert(assertions,'Job title visible',(await text(titleLoc)).length>=3,await text(titleLoc));
     assert(assertions,'Company visible',(await text(companyLoc)).length>=2,await text(companyLoc));
-    for(const key of ['country','location','type','category','salary','date']){
-      const fact=key==='location' ? first.locator('.tc-card-location,.tc-meta-item[data-meta="location"] strong')
-        : key==='date' ? first.locator('.tc-card-employer time,.tc-meta-item[data-meta="date"] strong')
-        : first.locator(`.tc-meta-item[data-meta="${key}"] strong`);
-      const value=await text(fact);
+    // TheCareers.net cards use the same fact-row anatomy as TheCareers.org.
+    for(const [key,selector] of Object.entries({
+      country:'.tc-card-tags span:first-child',
+      location:'.tc-card-location',
+      type:'.tc-card-facts>div:nth-child(2) b',
+      category:'.tc-card-tags span:last-child',
+      salary:'.tc-card-facts>div:first-child b',
+      date:'.tc-card-employer time'
+    })){
+      const value=await text(first.locator(selector));
       assert(assertions,`Job fact: ${key}`,value.length>0,value||'missing');
     }
+    const compact=await first.locator('.tc-job-compact.tc-job-level6').count();
+    assert(assertions,'ORG-style compact level-six job card',compact===1);
+    const summary=await text(first.locator('.tc-card-blurb'));
+    assert(assertions,'Concise complete card summary',summary.length>0&&summary.length<=138&&!/(?:\\.{2,}|…)$/u.test(summary),summary);
+    const summaryStyle=await first.locator('.tc-card-blurb').evaluate(el=>({overflow:getComputedStyle(el).overflow,clamp:getComputedStyle(el).webkitLineClamp})).catch(()=>({}));
+    assert(assertions,'Description never visually clipped',summaryStyle.overflow!=='hidden'&&summaryStyle.clamp!=='3',JSON.stringify(summaryStyle));
     const view=first.locator('.tc-card-details,.tc-view-job,.tc-open-job').first(); const href=await view.getAttribute('href').catch(()=>null); assert(assertions,'View Job has safe URL',Boolean(href&&/^https?:\/\//i.test(href)),href||'missing');
     const save=first.locator('.tc-save-job').first(); if(await save.count()){ const before=await text(save); await save.click(); await page.waitForTimeout(200); const after=await text(save); assert(assertions,'Save button toggles',before!==after,`${before} -> ${after}`); await save.click().catch(()=>{}); }
   }

@@ -1,4 +1,4 @@
-const CACHE_NAME='thecareers-shell-v5-uiux-audit-20260920';
+const CACHE_NAME='thecareers-shell-v6-orgparity-cards-20260926';
 const APP_SHELL=['/','/index.html','/manifest.webmanifest','/config.js','/assets/ui.css','/assets/ui.js','/assets/ui-ux-pro-max.css','/assets/desktop-clean-v1.css','/assets/mobile-clean-v3.css','/assets/mobile-nav.js','/assets/mobile-globe-touch.js','/assets/job-filters-panel.js','/assets/pwa/icon-192.png','/assets/pwa/icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(APP_SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
