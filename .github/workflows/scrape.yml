@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  pages: write
   id-token: write
 
 concurrency:
@@ -134,3 +135,22 @@ jobs:
         env:
           SUPABASE_GITHUB_BRIDGE_URL: https://cqqozlmsvysmxdkkxjbj.supabase.co/functions/v1/github-bridge
         run: node backend/hourly-job-audit.mjs
+
+  seo-pages-deploy:
+    needs: scrape
+    if: needs.scrape.result == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build fresh SEO job pages and sitemap
+        run: node scripts/production-html-fix.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - name: Deploy refreshed Google Jobs pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,4 +1,5 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises'
+import { buildJobSeo } from './job-seo-build.mjs'
 import { extname, join, relative } from 'node:path'
 
 const root = process.cwd()
@@ -101,3 +102,7 @@ for (const file of await walk(root)) {
   await writeFile(file, html, 'utf8')
   console.log(`Prepared ${rel}`)
 }
+
+// Generate crawlable single-job pages only after the existing site HTML is prepared.
+// This changes deployment metadata/pages only; dashboard CSS/layout remains untouched.
+await buildJobSeo()
