@@ -27,6 +27,10 @@
 #jobList > .backend-job.tc-job-level6 .job-score .pct {
   color:var(--tc-job-accent);
 }
+/* Accent salary only when a numerical salary was actually disclosed. */
+html body .row-opps #jobList .job-row.backend-job.tc-job-card-refined.tc-job-level6.tc-has-salary .job-meta .tc-meta-item[data-meta="salary"]::after {
+  color:var(--tc-job-accent)!important;
+}
 #jobList > .backend-job.tc-job-level6 .job-actions .tc-open-job {
   width:100%;
   min-width:44px;
@@ -36,6 +40,9 @@
   background:var(--tc-job-accent);
   color:#fff;
   box-shadow:0 8px 16px -11px rgba(47,111,235,.9);
+  font-size:12px;
+  font-weight:750;
+  white-space:nowrap;
   transition:transform 160ms ease-out,box-shadow 200ms ease-out,background 200ms ease-out;
 }
 #jobList > .backend-job.tc-job-level6 .job-actions .tc-save-job {
@@ -72,6 +79,13 @@
 #jobList > .backend-job.tc-job-level6 .job-actions .tc-open-job:active,
 #jobList > .backend-job.tc-job-level6 .job-actions .tc-save-job:active {
   transform:scale(.96);
+}
+@media (min-width:901px) {
+  html body .row-opps #jobList .job-row.backend-job.tc-job-card-refined.tc-job-level6 .job-actions {
+    grid-template-columns:44px minmax(118px,1fr)!important;
+    justify-self:end!important;
+    width:min(100%,220px)!important;
+  }
 }
 /* One-time entrance, 40 ms between cards and content groups. Never on each refresh. */
 @keyframes tc6-enter { from { opacity:0;transform:translateY(10px) } to { opacity:1;transform:translateY(0) } }
