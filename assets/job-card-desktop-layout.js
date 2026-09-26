@@ -213,7 +213,7 @@
   }
 
   function enhanceCard(row) {
-    if (!(row instanceof HTMLElement) || !row.classList.contains('backend-job')) return;
+    if (!(row instanceof HTMLElement) || !row.classList.contains('backend-job') || row.classList.contains('tc-job-compact')) return;
     const main = row.querySelector('.job-main');
     const meta = row.querySelector('.job-meta');
     if (!main || !meta) return;
