@@ -50,6 +50,14 @@
     setRow('statusSources', Number.isFinite(sourcesScanned24h)
       ? `${sourcesScanned24h.toLocaleString()} sources scanned successfully in 24h`
       : 'Checking sources…');
+    const core = document.getElementById('coreStateText');
+    if (core) core.textContent = live ? 'VERIFIED FEED CONNECTED' : (state === 'degraded' ? 'SEARCH DATA DEGRADED' : 'VERIFYING SEARCH DATA');
+    const agentTitle = document.getElementById('agentStateTitle');
+    if (agentTitle) agentTitle.textContent = live ? 'SEARCH ENGINE CONNECTED' : (state === 'degraded' ? 'SEARCH ENGINE DEGRADED' : 'SEARCH STATUS');
+    const agentText = document.getElementById('agentStateText');
+    if (agentText) agentText.textContent = live
+      ? 'Verified vacancies and recent source-scan status are connected.'
+      : (state === 'degraded' ? 'Some live data could not be verified. Retry or check the activity log.' : 'Connecting to verified job data…');
     if (detail) console.info('[TheCareers] feed state:', state, detail);
   }
 
