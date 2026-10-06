@@ -61,10 +61,10 @@
     </div>
 
     <div class="status-list">
-      <div class="status-row"><span class="pulse"></span>AI Online</div>
-      <div class="status-row"><span class="pulse"></span>Web Connected</div>
-      <div class="status-row"><span class="pulse"></span>Live Job Feed</div>
-      <div class="status-row"><span class="pulse"></span>Global Coverage</div>
+      <div class="status-row" id="statusData"><span class="pulse"></span><span>Checking job data…</span></div>
+      <div class="status-row" id="statusSources"><span class="pulse"></span><span>Checking sources…</span></div>
+      <div class="status-row" id="statusFeed"><span class="pulse"></span><span>Verifying live feed…</span></div>
+      <div class="status-row" id="statusCoverage"><span class="pulse"></span><span>GCC coverage configured</span></div>
     </div>
 
     <div class="sidebar-quote">"More opportunities.<br>A brighter you."</div>
@@ -103,7 +103,7 @@
             </div>
             <div style="text-align:right;">
               <div class="panel-sub" style="margin-bottom:6px;">SEARCH VISUALIZATION</div>
-              <div class="live-pill"><span class="d"></span>LIVE</div>
+              <div class="live-pill" id="searchStatusPill"><span class="d"></span><span>CONNECTING</span></div>
             </div>
           </div>
 
@@ -124,9 +124,9 @@
             </div>
 
             <div class="metrics-col">
-              <div class="metric-big"><div class="num" id="metricPages">0</div><div class="lbl">ACTIVE SOURCES</div><svg class="metric-spark" viewBox="0 0 100 22" preserveAspectRatio="none"><polyline points="0,18 12,15 24,16 36,10 48,12 60,6 72,8 84,3 100,5" fill="none" stroke="#1fb567" stroke-width="2"/></svg></div>
-              <div class="metric-big"><div class="num" id="metricOpps">0</div><div class="lbl">VERIFIED JOBS</div><svg class="metric-spark" viewBox="0 0 100 22" preserveAspectRatio="none"><polyline points="0,20 14,14 28,16 42,9 56,11 70,5 84,8 100,2" fill="none" stroke="#2f6feb" stroke-width="2"/></svg></div>
-              <div class="metric-big"><div class="num" id="metricUptime">LIVE</div><div class="lbl">SEARCH STATUS</div><svg class="metric-spark" viewBox="0 0 100 22" preserveAspectRatio="none"><polyline points="0,10 14,11 28,9 42,10 56,8 70,9 84,7 100,8" fill="none" stroke="#8a8f96" stroke-width="2"/></svg></div>
+              <div class="metric-big"><div class="num" id="metricPages">—</div><div class="lbl">SOURCES SCANNED (24H)</div><svg class="metric-spark" viewBox="0 0 100 22" preserveAspectRatio="none"><polyline points="0,18 12,15 24,16 36,10 48,12 60,6 72,8 84,3 100,5" fill="none" stroke="#1fb567" stroke-width="2"/></svg></div>
+              <div class="metric-big"><div class="num" id="metricOpps">—</div><div class="lbl">VERIFIED JOBS</div><svg class="metric-spark" viewBox="0 0 100 22" preserveAspectRatio="none"><polyline points="0,20 14,14 28,16 42,9 56,11 70,5 84,8 100,2" fill="none" stroke="#2f6feb" stroke-width="2"/></svg></div>
+              <div class="metric-big"><div class="num" id="metricUptime">—</div><div class="lbl">SEARCH STATUS</div><svg class="metric-spark" viewBox="0 0 100 22" preserveAspectRatio="none"><polyline points="0,10 14,11 28,9 42,10 56,8 70,9 84,7 100,8" fill="none" stroke="#8a8f96" stroke-width="2"/></svg></div>
               <div class="ai-working"><b>AI IS WORKING</b>FOR YOUR FUTURE</div>
             </div>
           </div>
@@ -151,25 +151,25 @@
       <div class="stat-row">
         <div class="panel stat-card">
           <div class="stat-top"><div class="stat-ic" style="background:var(--panel-2);color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div><div class="stat-title">Jobs Found</div></div>
-          <div class="stat-num" id="statJobs">0</div>
+          <div class="stat-num" id="statJobs">—</div>
           <div class="stat-sub up">Verified active records</div>
           <svg class="stat-spark" viewBox="0 0 200 30" preserveAspectRatio="none"><polyline points="0,26 20,22 40,24 60,17 80,19 100,12 120,15 140,8 160,10 180,4 200,6" fill="none" stroke="#1fb567" stroke-width="2.2"/></svg>
         </div>
         <div class="panel stat-card">
           <div class="stat-top"><div class="stat-ic" style="background:var(--amber-soft);color:#a3661a"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6" fill="currentColor"/></svg></div><div class="stat-title">High Match</div></div>
-          <div class="stat-num" id="statHigh">0</div>
+          <div class="stat-num" id="statHigh">—</div>
           <div class="stat-sub up">Based on current match score</div>
           <svg class="stat-spark" viewBox="0 0 200 30" preserveAspectRatio="none"><polyline points="0,25 20,23 40,20 60,21 80,14 100,16 120,10 140,12 160,7 180,9 200,3" fill="none" stroke="#e0912b" stroke-width="2.2"/></svg>
         </div>
         <div class="panel stat-card">
-          <div class="stat-top"><div class="stat-ic" style="background:var(--blue-soft);color:#2050b0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></div><div class="stat-title">Sources Online</div></div>
-          <div class="stat-num"><span id="statSrc">0</span></div>
-          <div class="stat-sub up">Source monitor</div>
+          <div class="stat-top"><div class="stat-ic" style="background:var(--blue-soft);color:#2050b0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></div><div class="stat-title">Sources Scanned</div></div>
+          <div class="stat-num"><span id="statSrc">—</span></div>
+          <div class="stat-sub up">Successful scans in the last 24 hours</div>
           <svg class="stat-spark" viewBox="0 0 200 30" preserveAspectRatio="none"><polyline points="0,20 20,19 40,21 60,15 80,17 100,11 120,13 140,9 160,10 180,5 200,7" fill="none" stroke="#2f6feb" stroke-width="2.2"/></svg>
         </div>
         <div class="panel stat-card">
           <div class="stat-top"><div class="stat-ic" style="background:var(--green-soft);color:#0e7a45"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></div><div class="stat-title">Applications</div></div>
-          <div class="stat-num" id="statApps">0</div>
+          <div class="stat-num" id="statApps">—</div>
           <div class="stat-sub up">Your tracked applications</div>
           <svg class="stat-spark" viewBox="0 0 200 30" preserveAspectRatio="none"><polyline points="0,22 20,24 40,18 60,20 80,13 100,16 120,9 140,12 160,6 180,8 200,4" fill="none" stroke="#1fb567" stroke-width="2.2"/></svg>
         </div>
@@ -183,10 +183,10 @@
           </div>
           <div class="opps-toolbar">
             <div class="tabs">
-              <button class="tab" data-tab="high">High Match (0)</button>
-              <button class="tab active" data-tab="all">All Jobs (0)</button>
-              <button class="tab" data-tab="new">New Today (0)</button>
-              <button class="tab" data-tab="saved">Saved (0)</button>
+              <button class="tab" data-tab="high">High Match (—)</button>
+              <button class="tab active" data-tab="all">All Jobs (—)</button>
+              <button class="tab" data-tab="new">New Today (—)</button>
+              <button class="tab" data-tab="saved">Saved (—)</button>
             </div>
             <div class="opps-actions">
               <div class="select-like">Sort by: Newest</div>
@@ -204,7 +204,7 @@
           <div class="sector-body">
             <div class="donut-wrap">
               <canvas id="donutCanvas" width="220" height="220"></canvas>
-              <div class="donut-center"><div class="num">0</div><div class="lbl">Jobs Found</div></div>
+              <div class="donut-center"><div class="num">—</div><div class="lbl">Jobs Found</div></div>
             </div>
             <div class="sector-legend" id="sectorLegend"></div>
           </div>
