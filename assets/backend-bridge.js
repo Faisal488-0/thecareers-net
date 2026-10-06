@@ -27,6 +27,31 @@
   let searchQuery = (()=>{ try { return new URL(location.href).searchParams.get('q') || ''; } catch { return ''; } })();
   let autoRefresh = true;
   let jobLoadSeq = 0;
+  let feedHealthy = false;
+  let sourcesScanned24h = null;
+
+  function setFeedState(state, detail='') {
+    feedHealthy = state === 'live';
+    const live = feedHealthy;
+    const pill = document.getElementById('searchStatusPill');
+    if (pill) {
+      const label = pill.querySelector('span:last-child');
+      if (label) label.textContent = live ? 'LIVE' : (state === 'degraded' ? 'DEGRADED' : 'CONNECTING');
+    }
+    const uptime = document.getElementById('metricUptime');
+    if (uptime) uptime.textContent = live ? 'LIVE' : (state === 'degraded' ? 'DEGRADED' : '—');
+    const setRow = (id, message) => {
+      const row = document.getElementById(id);
+      const span = row?.querySelector('span:last-child');
+      if (span) span.textContent = message;
+    };
+    setRow('statusData', live ? 'Verified job data connected' : (state === 'degraded' ? 'Job data connection degraded' : 'Checking job data…'));
+    setRow('statusFeed', live ? 'Verified feed active' : (state === 'degraded' ? 'Verified feed needs attention' : 'Verifying live feed…'));
+    setRow('statusSources', Number.isFinite(sourcesScanned24h)
+      ? `${sourcesScanned24h.toLocaleString()} sources scanned successfully in 24h`
+      : 'Checking sources…');
+    if (detail) console.info('[TheCareers] feed state:', state, detail);
+  }
 
   async function rest(path, options = {}) {
     const res = await fetch(`${base}/rest/v1/${path}`, {
@@ -258,12 +283,11 @@
     set('statJobs',rows.length);set('statHigh',high);set('metricOpps',rows.length);
     if(sourceCount!==null){set('statSrc',sourceCount);set('metricPages',sourceCount);}
     if(applicationCount!==null)set('statApps',applicationCount);
-    const live=document.getElementById('metricUptime');if(live)live.textContent='LIVE';
     const donutNum=document.querySelector('.donut-center .num');if(donutNum)donutNum.textContent=rows.length.toLocaleString();
     const cards=document.querySelectorAll('.stat-card');
-    if(cards[0]?.querySelector('.stat-sub'))cards[0].querySelector('.stat-sub').textContent=`▲ ${today} new today`;
-    if(cards[1]?.querySelector('.stat-sub'))cards[1].querySelector('.stat-sub').textContent=`▲ ${rows.length?Math.round(high/rows.length*100):0}% of current jobs`;
-    if(cards[2]?.querySelector('.stat-sub')&&sourceCount!==null)cards[2].querySelector('.stat-sub').textContent=`▲ ${sourceCount} enabled sources`;
+    if(cards[0]?.querySelector('.stat-sub'))cards[0].querySelector('.stat-sub').textContent=`${today} new today`;
+    if(cards[1]?.querySelector('.stat-sub'))cards[1].querySelector('.stat-sub').textContent=`${rows.length?Math.round(high/rows.length*100):0}% of current jobs`;
+    if(cards[2]?.querySelector('.stat-sub')&&sourceCount!==null)cards[2].querySelector('.stat-sub').textContent=`${sourceCount} successful scans in the last 24 hours`;
     if(cards[3]?.querySelector('.stat-sub')&&applicationCount!==null)cards[3].querySelector('.stat-sub').textContent=`${applicationCount} total applications`;
   }
 
@@ -297,8 +321,17 @@
   }
 
   async function loadDashboardCounts() {
-    const [sources,apps]=await Promise.all([rest('sources?select=id&enabled=eq.true&limit=500'),rest('applications?select=id&limit=500')]);
-    updateMetrics((sources||[]).length,(apps||[]).length);
+    const [sources,apps]=await Promise.all([
+      rest('sources?select=id,last_scan_at,last_status&enabled=eq.true&limit=500'),
+      rest('applications?select=id&limit=500')
+    ]);
+    const cutoff=Date.now()-24*60*60*1000;
+    sourcesScanned24h=(sources||[]).filter(s=>{
+      const scanned=Date.parse(s.last_scan_at||'');
+      const status=clean(s.last_status).toLowerCase();
+      return Number.isFinite(scanned)&&scanned>=cutoff&&['ok','success','healthy','completed'].includes(status);
+    }).length;
+    updateMetrics(sourcesScanned24h,(apps||[]).length);
   }
 
   async function loadActivity() {
@@ -385,7 +418,17 @@
   document.addEventListener('tc:job-title-search',e=>{const next=clean(e.detail?.query||'');if(next===clean(searchQuery))return;searchQuery=next;activeTab='all';loadJobs().catch(err=>console.error('[TheCareers] role search',err));});
   document.addEventListener('tc:country-filter-change',e=>{const next=clean(e.detail?.country||document.documentElement.dataset.tcCountryFilter||'all').toLowerCase()||'all';if(next===countryFilter)return;countryFilter=next;activeTab='all';loadJobs().catch(err=>console.error('[TheCareers] country filter',err));});
 
-  async function refresh(){await Promise.allSettled([loadJobs(),loadDashboardCounts(),loadActivity()]);}
+  async function refresh(){
+    setFeedState('connecting');
+    const results=await Promise.allSettled([loadJobs(),loadDashboardCounts(),loadActivity()]);
+    const jobsOk=results[0]?.status==='fulfilled';
+    const countsOk=results[1]?.status==='fulfilled';
+    if(jobsOk&&countsOk) setFeedState('live');
+    else {
+      const reason=results.filter(r=>r.status==='rejected').map(r=>r.reason?.message||String(r.reason)).join(' | ');
+      setFeedState('degraded',reason);
+    }
+  }
   refresh();setInterval(()=>{if(autoRefresh)refresh();},30000);
 
   window.TheCareersLive={
