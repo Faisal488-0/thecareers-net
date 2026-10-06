@@ -1,0 +1,55 @@
+{
+  "engine": {
+    "name": "MiroFish",
+    "fork": "shayswrld/mirofish",
+    "commit": "8d4eea4dfa981ecd23c3b385953b4085dfd9b6ca",
+    "mode": "read-only synthetic-customer lab",
+    "llm": "local Ollama only",
+    "paid_fallback": false
+  },
+  "excluded": [
+    {
+      "name": "Kuwait AI Teacher",
+      "repo": "Faisal488-0/kuwait-ai-teacher",
+      "reason": "Explicitly excluded by owner"
+    }
+  ],
+  "targets": [
+    {
+      "id": "shamx",
+      "name": "ShamX",
+      "url": "https://shamx.net/",
+      "fallback_urls": ["https://shamx.base44.app/"],
+      "repo": "Faisal488-0/mazzad-alsham",
+      "audiences": ["auction buyer", "auction seller", "Arabic mobile user", "skeptical first-time visitor"],
+      "goal": "Test trust, auction comprehension, listing flow, conversion friction, mobile UX and scam concerns."
+    },
+    {
+      "id": "thecareers-net",
+      "name": "TheCareers.net",
+      "url": "https://thecareers.net/",
+      "fallback_urls": [],
+      "repo": "Faisal488-0/thecareers-net",
+      "audiences": ["Kuwait job seeker", "GCC job seeker", "HR/admin candidate", "teacher"],
+      "goal": "Test job freshness trust, search clarity, application flow, empty states, mobile UX and credibility."
+    },
+    {
+      "id": "thecareers-org",
+      "name": "TheCareers.org",
+      "url": "https://www.thecareers.org/",
+      "fallback_urls": [],
+      "repo": "Faisal488-0/thecareers-org",
+      "audiences": ["Arabic GCC job seeker", "English GCC job seeker", "mobile user", "skeptical applicant"],
+      "goal": "Test bilingual clarity, trust in verified jobs, filters, source transparency, application flow and empty states."
+    },
+    {
+      "id": "alfahad",
+      "name": "Al-Fahad International",
+      "url": "https://www.alfahadkw.com/",
+      "fallback_urls": ["https://www.alfahadkw.com/ar"],
+      "repo": "Faisal488-0/Al-Fahad-International-Website",
+      "audiences": ["procurement manager", "oil and gas contractor", "equipment buyer", "Arabic B2B visitor"],
+      "goal": "Test corporate credibility, services comprehension, RFQ conversion, project proof, equipment trust and bilingual UX."
+    }
+  ]
+}
