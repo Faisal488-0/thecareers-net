@@ -329,16 +329,12 @@
   }
 
   async function loadDashboardCounts() {
+    const cutoffIso=new Date(Date.now()-24*60*60*1000).toISOString();
     const [sources,apps]=await Promise.all([
-      rest('sources?select=id,last_scan_at,last_status&enabled=eq.true&limit=500'),
+      rest(`sources?select=id&enabled=eq.true&last_status=eq.ok&last_scan_at=gte.${encodeURIComponent(cutoffIso)}&limit=500`),
       rest('applications?select=id&limit=500')
     ]);
-    const cutoff=Date.now()-24*60*60*1000;
-    sourcesScanned24h=(sources||[]).filter(s=>{
-      const scanned=Date.parse(s.last_scan_at||'');
-      const status=clean(s.last_status).toLowerCase();
-      return Number.isFinite(scanned)&&scanned>=cutoff&&['ok','success','healthy','completed'].includes(status);
-    }).length;
+    sourcesScanned24h=(sources||[]).length;
     updateMetrics(sourcesScanned24h,(apps||[]).length);
   }
 
