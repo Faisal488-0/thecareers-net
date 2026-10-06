@@ -1,0 +1,46 @@
+name: MiroFish Site Lab
+
+on:
+  push:
+    branches:
+      - lab/mirofish-all-sites-20261006
+    paths:
+      - "mirofish-lab/**"
+      - ".github/workflows/mirofish-site-lab.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirofish-site-lab
+  cancel-in-progress: true
+
+jobs:
+  seed-capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Capture public site seeds
+        run: python mirofish-lab/scripts/snapshot_sites.py
+      - name: Verify smart-teacher exclusion
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R "kuwait-ai-teacher" mirofish-lab/generated/*.md || {
+            echo "Excluded teacher project leaked into generated seeds."
+            exit 1
+          }
+      - name: Upload seed pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: mirofish-site-seeds
+          path: |
+            mirofish-lab/generated/
+            mirofish-lab/targets.json
+            mirofish-lab/prompts/all-sites.md
+          retention-days: 7
