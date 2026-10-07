@@ -80,18 +80,19 @@ jobs:
           echo "::add-mask::$TOKEN"
           echo "GITHUB_OIDC_TOKEN=$TOKEN" >> "$GITHUB_ENV"
 
-      - name: Select light hourly or full twice-daily collector
+      - name: Select light or full collector
         id: mode
         shell: bash
         env:
-          SCHEDULE: ${{ github.event.schedule }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [ "$GITHUB_EVENT_NAME" != 'schedule' ] || [ "$SCHEDULE" = '17 0,12 * * *' ]; then
+          hour=$(( $(date -u +%s) / 3600 ))
+          if [ "$EVENT_NAME" != 'schedule' ] || [ "$(( hour % 10 ))" -eq 0 ]; then
             echo 'full=true' >> "$GITHUB_OUTPUT"
             echo 'Full collector: browser, public fallback and verification.'
           else
             echo 'full=false' >> "$GITHUB_OUTPUT"
-            echo 'Hourly light collector: public HTTP/RSS feeds and verification.'
+            echo 'Light collector: public HTTP/RSS feeds and verification.'
           fi
 
       - name: Ingest Arbeitnow API
