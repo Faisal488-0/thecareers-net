@@ -5,10 +5,6 @@ on:
     # 00:00, 08:00 and 16:00 Kuwait time (UTC+3).
     - cron: '0 5,13,21 * * *'
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - '.github/telegram-report-smoke-test.txt'
 
 permissions:
   contents: read
@@ -26,6 +22,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Verify required GitHub Actions secrets
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        shell: bash
+        run: |
+          missing=0
+          for secret in SUPABASE_SERVICE_ROLE_KEY TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID; do
+            if [ -z "${!secret}" ]; then
+              echo "::error title=Missing secret::${secret} is not configured in repository Actions secrets."
+              missing=1
+            fi
+          done
+          exit "$missing"
       - name: Send exactly one aggregated visits message
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
