@@ -1,0 +1,1 @@
+Smoke test: run the consolidated 8-hour site visit report once. 2026-10-09.
