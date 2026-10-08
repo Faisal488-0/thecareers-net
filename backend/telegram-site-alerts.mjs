@@ -1,72 +1,71 @@
 import process from 'node:process';
 
+// Single consolidated visit report. Site-only counts: no visitor or customer data.
 const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://cqqozlmsvysmxdkkxjbj.supabase.co').replace(/\/$/, '');
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
-const REPORT_MODE = (process.env.TELEGRAM_REPORT_MODE || 'hourly').toLowerCase();
 
 if (!SERVICE_KEY || !BOT_TOKEN || !CHAT_ID) {
-  console.error('Missing SUPABASE_SERVICE_ROLE_KEY / TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID');
+  console.error('Missing Supabase service role or Telegram delivery credentials.');
   process.exit(1);
 }
 
-const headers = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` };
+const hour = 60 * 60 * 1000;
+const eightHours = 8 * hour;
+// Midnight / 08:00 / 16:00 in Kuwait = 21:00 / 05:00 / 13:00 UTC.
+const offset = 5 * hour;
+const windowEnd = new Date(Math.floor((Date.now() - offset) / eightHours) * eightHours + offset);
+const windowStart = new Date(windowEnd.getTime() - eightHours);
 
-async function rest(path) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers });
-  if (!res.ok) throw new Error(`Supabase ${res.status}: ${await res.text()}`);
-  return res.json();
-}
+const sites = [
+  { domain: 'thecareers.net', legacy: true },
+  { domain: 'thecareers.org' },
+  { domain: 'theaiteachers.net' },
+  { domain: 'alfahadkw.com' },
+  { domain: 'shamx.net', pending: true }
+];
 
-async function telegram(text) {
-  const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: CHAT_ID, text, disable_web_page_preview: true })
+const headers = {
+  apikey: SERVICE_KEY,
+  Authorization: `Bearer ${SERVICE_KEY}`,
+  Prefer: 'count=exact'
+};
+
+async function countVisits(site) {
+  if (site.pending) return null; // No tracker installed; zero would misrepresent traffic.
+  const query = new URLSearchParams({
+    select: 'created_at',
+    created_at: `gte.${windowStart.toISOString()}`,
+    and: `(created_at.lt.${windowEnd.toISOString()})`,
+    limit: '1',
+    ...(site.legacy ? { event_type: 'eq.visit' } : { site_domain: `eq.${site.domain}` })
   });
-  if (!res.ok) throw new Error(`Telegram ${res.status}: ${await res.text()}`);
+  const table = site.legacy ? 'site_events' : 'website_visit_sessions';
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, { headers, signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error(`Website traffic query failed for ${site.domain}: HTTP ${res.status}`);
+  const total = res.headers.get('content-range')?.split('/')[1];
+  if (!total || !/^\d+$/.test(total)) throw new Error(`Missing exact traffic count for ${site.domain}`);
+  return Number(total);
 }
 
-const now = new Date();
-const hours = REPORT_MODE === 'daily' ? 24 : 1;
-const since = new Date(now.getTime() - hours * 60 * 60 * 1000).toISOString();
-const events = await rest(`site_events?select=id,event_type,session_id,user_id,page,meta,created_at&created_at=gte.${encodeURIComponent(since)}&order=created_at.asc&limit=10000`);
+const results = await Promise.all(sites.map(async site => {
+  try { return { ...site, visits: await countVisits(site) }; }
+  catch (error) {
+    console.error(String(error?.message || error));
+    return { ...site, visits: null };
+  }
+}));
 
-const counts = {};
-const sessions = new Set();
-for (const e of events) {
-  counts[e.event_type] = (counts[e.event_type] || 0) + 1;
-  if (e.session_id) sessions.add(e.session_id);
-}
+// Never report missing data as zero; never send one message per individual site.
+const lines = results.map(({ domain, visits }) => `${domain}: ${visits === null ? 'غير متاح' : visits.toLocaleString('en-US')}`);
+const text = ['زيارات آخر ٨ ساعات', ...lines].join('\n');
 
-const fmt = n => Number(n || 0).toLocaleString('en-US');
-
-if (REPORT_MODE === 'daily') {
-  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kuwait', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-  await telegram(`⚡ TheCareers Daily — ${date}\n👀 Visits: ${fmt(counts.visit)}`);
-  process.exit(0);
-}
-
-const important = events.filter(e => ['search_now','cv_analyze_started','auth_submit','job_save'].includes(e.event_type));
-if (events.length) {
-  const lines = [
-    '📊 TheCareers • Last 60 minutes',
-    `👥 Sessions: ${fmt(sessions.size)}`,
-    `👀 Visits: ${fmt(counts.visit)}`,
-    `🔎 Searches: ${fmt(counts.search_now)}`,
-    `📄 CV actions: ${fmt(counts.cv_analyze_started)}`,
-    `🔐 Auth actions: ${fmt(counts.auth_submit)}`,
-    `⭐ Saved jobs: ${fmt(counts.job_save)}`,
-    `↗️ Job opens: ${fmt(counts.job_open)}`
-  ];
-  await telegram(lines.join('\n'));
-}
-
-if (important.length) {
-  const recent = important.slice(-8).map(e => {
-    const icon = ({search_now:'🔎',cv_analyze_started:'📄',auth_submit:'🔐',job_save:'⭐'})[e.event_type] || '•';
-    return `${icon} ${e.event_type.replaceAll('_',' ')} • ${new Date(e.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kuwait'})}`;
-  });
-  await telegram(['⚡ TheCareers activity', ...recent].join('\n'));
-}
+const delivered = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ chat_id: CHAT_ID, text, disable_web_page_preview: true }),
+  signal: AbortSignal.timeout(15000)
+});
+if (!delivered.ok) throw new Error(`Telegram delivery failed: HTTP ${delivered.status}`);
+console.log(`Sent one 8-hour website report for window ending ${windowEnd.toISOString()}`);
