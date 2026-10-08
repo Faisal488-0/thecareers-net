@@ -5,6 +5,10 @@ on:
     # 00:00, 08:00 and 16:00 Kuwait time (UTC+3).
     - cron: '0 5,13,21 * * *'
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/telegram-report-smoke-test.txt'
 
 permissions:
   contents: read
