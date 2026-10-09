@@ -1,0 +1,12 @@
+/* Standalone original helper: no third-party runtime or image assets. */
+.fh-root{position:fixed;z-index:70;width:52px;height:52px;pointer-events:none;transition:left .2s ease,top .2s ease;direction:rtl}
+.fh-trigger{pointer-events:auto;display:grid;place-items:center;width:52px;height:52px;border:2px solid #fff;border-radius:50%;background:linear-gradient(145deg,#106d75,#20468e);color:#fff;font-size:27px;box-shadow:0 5px 18px #001d2c55;cursor:grab;touch-action:none;user-select:none;animation:fh-pulse 5s ease-in-out infinite}
+.fh-trigger:active{cursor:grabbing}
+.fh-trigger:focus-visible,.fh-panel button:focus-visible{outline:3px solid #e1b64b;outline-offset:3px}
+.fh-panel{position:absolute;pointer-events:auto;box-sizing:border-box;width:min(260px,calc(100vw - 24px));max-height:65vh;overflow:auto;padding:14px;background:#fff;color:#173c44;border:1px solid #c7d7dc;border-radius:14px;box-shadow:0 8px 26px #001d2c44;font:14px/1.6 system-ui,sans-serif;text-align:right}
+.fh-panel[hidden]{display:none}
+.fh-panel strong{display:block;font-size:16px}
+.fh-panel p{margin:6px 0 10px}
+.fh-panel button{display:block;width:100%;min-height:44px;margin:5px 0 0;border:1px solid #c7d7dc;border-radius:8px;background:#f1f7f8;color:#173c44;cursor:pointer;font:inherit}
+@keyframes fh-pulse{50%{filter:brightness(1.15)}}
+@media(prefers-reduced-motion:reduce){.fh-root{transition:none}.fh-trigger{animation:none}}
