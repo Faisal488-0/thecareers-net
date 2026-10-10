@@ -1,0 +1,38 @@
+name: Public Mascot Live Smoke
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/mascot-live-smoke.yml'
+      - 'qa/mascot-live-smoke.cjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/mascot-live-smoke.yml'
+      - 'qa/mascot-live-smoke.cjs'
+permissions:
+  contents: read
+jobs:
+  live-mascot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install headless Chromium for a bounded public UI check
+        run: |
+          mkdir -p /tmp/mascot-live
+          npm install --prefix /tmp/mascot-live --no-save --no-package-lock --ignore-scripts playwright@1.55.1
+          /tmp/mascot-live/node_modules/.bin/playwright install --with-deps chromium
+      - name: Confirm production mascot eyes and menu in Chromium
+        run: node qa/mascot-live-smoke.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-mascot-smoke
+          path: qa/live-mascot-output/
+          if-no-files-found: ignore
