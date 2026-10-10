@@ -90,7 +90,7 @@ test('pupils visibly follow precise mouse coordinates and remain bounded',()=>{
   assert.match(source,/pointermove/);
   assert.match(css,/--(?:eye|look)-x/);
   assert.match(css,/--(?:eye|look)-y/);
-  assert.match(css,/translate\\(var\\(--(?:eye|look)-x/);
+  assert.match(css,/translate\(var\(--(?:eye|look)-x/);
   app.fire('pointermove',{pointerType:'mouse',clientX:1010,clientY:720});
   app.flush();
   const x=app.face.style.getPropertyValue('--eye-x');
