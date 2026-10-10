@@ -1,0 +1,33 @@
+name: Mascot UI assurance
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/floating-helper.js'
+      - 'assets/floating-helper.css'
+      - 'tests/mascot-eye.test.mjs'
+      - 'index.html'
+      - '.github/workflows/mascot-ui.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'assets/floating-helper.js'
+      - 'assets/floating-helper.css'
+      - 'tests/mascot-eye.test.mjs'
+      - 'index.html'
+      - '.github/workflows/mascot-ui.yml'
+permissions:
+  contents: read
+jobs:
+  mascot-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check assets/floating-helper.js
+      - run: node --test tests/mascot-eye.test.mjs
