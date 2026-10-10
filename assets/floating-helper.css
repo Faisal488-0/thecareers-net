@@ -1,12 +1,31 @@
-/* Standalone original helper: no third-party runtime or image assets. */
-.fh-root{position:fixed;z-index:70;width:52px;height:52px;pointer-events:none;transition:left .2s ease,top .2s ease;direction:rtl}
-.fh-trigger{pointer-events:auto;display:grid;place-items:center;width:52px;height:52px;border:2px solid #fff;border-radius:50%;background:linear-gradient(145deg,#106d75,#20468e);color:#fff;font-size:27px;box-shadow:0 5px 18px #001d2c55;cursor:grab;touch-action:none;user-select:none;animation:fh-pulse 5s ease-in-out infinite}
+/* Original friendly career guide. Pupil motion is pointer-driven and bounded to 3px. */
+.fh-root{position:fixed;z-index:70;width:60px;height:60px;pointer-events:none;transition:left .2s ease,top .2s ease;font-family:system-ui,sans-serif;direction:ltr}
+.fh-root[dir="rtl"]{direction:rtl}
+.fh-trigger{position:relative;pointer-events:auto;display:block;width:60px;height:60px;border:3px solid #fff;border-radius:24px;background:radial-gradient(circle at 30% 25%,#b8ffdf,#21a97e 74%,#0c7463);box-shadow:0 5px 17px #002b2859;cursor:grab;touch-action:none;user-select:none;animation:fh-breathe 4s ease-in-out infinite}
 .fh-trigger:active{cursor:grabbing}
-.fh-trigger:focus-visible,.fh-panel button:focus-visible{outline:3px solid #e1b64b;outline-offset:3px}
-.fh-panel{position:absolute;pointer-events:auto;box-sizing:border-box;width:min(260px,calc(100vw - 24px));max-height:65vh;overflow:auto;padding:14px;background:#fff;color:#173c44;border:1px solid #c7d7dc;border-radius:14px;box-shadow:0 8px 26px #001d2c44;font:14px/1.6 system-ui,sans-serif;text-align:right}
+.fh-trigger:focus-visible,.fh-panel button:focus-visible,.fh-restore:focus-visible{outline:3px solid #f0ba3d;outline-offset:3px}
+.fh-eyes{position:absolute;left:11px;top:17px;display:flex;gap:9px;pointer-events:none}
+.fh-eyes i{position:relative;display:block;box-sizing:border-box;width:15px;height:17px;border:2px solid #115344;border-radius:50%;background:white;overflow:hidden;transform-origin:center;animation:fh-blink 7s infinite}
+.fh-eyes b{position:absolute;left:3px;top:4px;display:block;width:5px;height:6px;border-radius:50%;background:#105042;transform:translate(var(--eye-x,0px),var(--eye-y,0px));transition:transform .08s ease-out}
+.fh-mouth{position:absolute;left:22px;top:37px;width:13px;height:7px;border:3px solid #155345;border-top:0;border-radius:0 0 18px 18px}
+.fh-sparkle{position:absolute;right:-8px;top:-11px;color:#ffd66d;text-shadow:1px 1px #145a46;font-size:22px}
+.fh-tag{position:absolute;pointer-events:none;right:65px;top:9px;min-width:72px;white-space:nowrap;padding:5px 9px;background:#fff;border:1px solid #a4d4ba;border-radius:12px;color:#154d3e;font-size:10px;font-weight:800;box-shadow:0 2px 9px #163b2f22}
+.fh-restore{position:absolute;pointer-events:auto;top:0;left:0;width:40px;height:40px;background:#d6f4eb;color:#165642;border:2px solid #167f63;border-radius:50%;cursor:pointer;font-size:21px}
+.fh-restore{display:none}
+.fh-trigger[hidden]{display:none}
+.fh-minimized .fh-restore{display:grid;place-items:center}
+.fh-trigger[hidden],.fh-tag[hidden]{display:none}
+.fh-panel{position:fixed;pointer-events:auto;box-sizing:border-box;max-height:calc(100dvh - 24px);overflow:auto;background:#fff;color:#143a33;border:1px solid #c4ded5;border-radius:18px;box-shadow:0 12px 35px #102a2850;padding:15px;text-align:start;font:14px/1.6 system-ui,sans-serif}
 .fh-panel[hidden]{display:none}
-.fh-panel strong{display:block;font-size:16px}
-.fh-panel p{margin:6px 0 10px}
-.fh-panel button{display:block;width:100%;min-height:44px;margin:5px 0 0;border:1px solid #c7d7dc;border-radius:8px;background:#f1f7f8;color:#173c44;cursor:pointer;font:inherit}
-@keyframes fh-pulse{50%{filter:brightness(1.15)}}
-@media(prefers-reduced-motion:reduce){.fh-root{transition:none}.fh-trigger{animation:none}}
+.fh-panel strong{display:block;font-size:17px}
+.fh-panel p{margin:7px 0 11px}
+.fh-actions{display:grid;gap:7px}
+.fh-actions button{font:inherit;font-weight:700;border:1px solid #8bc3b3;color:#135645;background:#e9f8f2;border-radius:10px;cursor:pointer;min-height:44px;padding:9px}
+.fh-tip{padding:10px;background:#fff9e9;border-radius:10px;border:1px solid #e7d39d}
+.fh-controls{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:13px}
+.fh-controls button{font:inherit;border-radius:10px;min-height:44px;padding:6px;background:#f4f7f6;color:#234a40;border:1px solid #c2d6cf;cursor:pointer}
+.fh-controls button:disabled{opacity:.55;cursor:not-allowed}
+@keyframes fh-breathe{50%{filter:brightness(1.07)}}
+@keyframes fh-blink{0%,43%,46%,100%{transform:scaleY(1)}44%,45%{transform:scaleY(.16)}}
+@media(prefers-reduced-motion:reduce){.fh-root{transition:none}.fh-trigger,.fh-eyes i{animation:none}.fh-eyes b{transition:none}}
+@media(max-width:480px){.fh-tag{display:none}.fh-panel{font-size:13px}}
