@@ -23,7 +23,8 @@ const sites = [
   { domain: 'thecareers.org' },
   { domain: 'theaiteachers.net' },
   { domain: 'alfahadkw.com' },
-  { domain: 'shamx.net', pending: true }
+  { domain: 'shamx.net', pending: true },
+  { domain: 'nooo.si', pending: true }
 ];
 
 const headers = {
