@@ -1,7 +1,7 @@
 name: TheCareers job scrape
 on:
-  # Hourly wake-up; the epoch-hour gate below runs the collector once per 5h
-  # continuously (no 4-hour midnight gap). Manual runs remain available.
+  # Hourly wake-up; the elapsed-time gate below runs the collector when >= 5h
+  # have passed since the last executed scrape. Manual runs remain available.
   schedule:
     - cron: '17 * * * *'
   workflow_dispatch:
@@ -28,17 +28,41 @@ concurrency:
 jobs:
   cadence:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     outputs:
       run_cycle: ${{ steps.slot.outputs.run_cycle }}
     steps:
-      - name: Select one continuous five-hour time slot
+      # GitHub throttles the hourly cron to irregular 4-6h gaps, so a fixed
+      # epoch-hour slot (hour % 5 == 0) could be missed for days. Instead, run
+      # whenever >= 5h have passed since the last scrape job that executed.
+      - name: Run when five hours have passed since the last executed scrape
         id: slot
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          MIN_GAP_SECONDS: '18000'
         run: |
-          hour=$(( $(date -u +%s) / 3600 ))
-          if [ "$EVENT_NAME" != 'schedule' ] || [ "$(( hour % 5 ))" -eq 0 ]; then
+          if [ "$EVENT_NAME" != 'schedule' ]; then
+            echo 'run_cycle=true' >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          now=$(date -u +%s)
+          last=''
+          for id in $(gh api "repos/$REPO/actions/workflows/scrape.yml/runs?per_page=30" --jq ".workflow_runs[] | select(.id != $RUN_ID) | .id" 2>/dev/null); do
+            started=$(gh api "repos/$REPO/actions/runs/$id/jobs" --jq '[.jobs[] | select(.name == "scrape" and .conclusion != "skipped" and .started_at != null) | .started_at][0] // empty' 2>/dev/null)
+            if [ -n "$started" ]; then last="$started"; break; fi
+          done
+          if [ -z "$last" ]; then
+            echo "No executed scrape found in recent history; running."
+            echo 'run_cycle=true' >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          gap=$(( now - $(date -u -d "$last" +%s) ))
+          echo "Last executed scrape started at $last (${gap}s ago)."
+          if [ "$gap" -ge "$MIN_GAP_SECONDS" ]; then
             echo 'run_cycle=true' >> "$GITHUB_OUTPUT"
           else
             echo 'run_cycle=false' >> "$GITHUB_OUTPUT"
