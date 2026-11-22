@@ -1,6 +1,11 @@
 name: All websites — Telegram visits every 8 hours
 
 on:
+  pull_request:
+    paths:
+      - 'backend/telegram-site-alerts.mjs'
+      - '.github/workflows/telegram-daily.yml'
+      - 'tests/telegram-site-alerts.test.mjs'
   schedule:
     # 00:00, 08:00 and 16:00 Kuwait time (UTC+3).
     - cron: '0 5,13,21 * * *'
@@ -22,7 +27,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Test consolidated analytics logic (no network or secrets)
+        run: node --test tests/telegram-site-alerts.test.mjs
       - name: Verify required GitHub Actions secrets
+        if: github.event_name != 'pull_request'
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -38,6 +46,7 @@ jobs:
           done
           exit "$missing"
       - name: Send exactly one aggregated visits message
+        if: github.event_name != 'pull_request'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
