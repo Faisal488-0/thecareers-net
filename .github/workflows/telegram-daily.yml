@@ -7,8 +7,9 @@ on:
       - '.github/workflows/telegram-daily.yml'
       - 'tests/telegram-site-alerts.test.mjs'
   schedule:
-    # 00:00, 08:00 and 16:00 Kuwait time (UTC+3).
-    - cron: '0 5,13,21 * * *'
+    # Run at 00:17, 08:17 and 16:17 Kuwait time (UTC+3).
+    # Avoid the GitHub Actions top-of-hour peak; report windows remain aligned to 00/08/16.
+    - cron: '17 5,13,21 * * *'
   workflow_dispatch:
 
 permissions:
