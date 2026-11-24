@@ -43,7 +43,7 @@ test('one delivery, five Supabase queries, and transparent Cloudflare missing-to
   assert.equal(result.results.length, 6);
   assert.equal(result.results.find(s => s.domain === 'nooo.si').visits, 3);
   assert.equal(result.results.find(s => s.domain === 'shamx.net').status, 'not_configured');
-  assert.match(result.message, /shamx\.net: غير مربوط \(Cloudflare\)/);
+  assert.match(result.message, /shamx\.net: غير مربوط \(Cloudflare Analytics\)/);
   assert.match(result.message, /الفترة \(الكويت\): 2026-11-21 16:00 — 2026-11-22 00:00/);
 });
 
@@ -56,7 +56,8 @@ test('Cloudflare mode reads actual Cloudflare visit count when token exists', as
   assert.match(graphql, /siteTag/);
   assert.doesNotMatch(graphql, /httpRequestsAdaptiveGroups/);
   assert.equal(result.results.find(s => s.domain === 'shamx.net').visits, 17);
-  assert.match(result.message, /shamx\.net: 17 \(زيارات Cloudflare\)/);
+  assert.equal(result.results.find(s => s.domain === 'shamx.net').pageViews, 23);
+  assert.match(result.message, /shamx\.net: 17 زيارة متصفح، 23 مشاهدة صفحة \(Cloudflare\)/);
 });
 
 test('a failing source is not reported as zero, while other sites still report', async () => {
