@@ -56,7 +56,7 @@ export async function countCloudflare({ fetchImpl, env, start, end }) {
   const query = `{ viewer { accounts(filter: { accountTag: "${SHAMX_CF_ACCOUNT}" }) {
     rumPageloadEventsAdaptiveGroups(limit: 1, filter: {
       datetime_geq: "${start.toISOString()}", datetime_lt: "${end.toISOString()}",
-      siteTag: "${SHAMX_CF_RUM_SITE}"
+      siteTag: "${SHAMX_CF_RUM_SITE}", requestHost: "shamx.net"
     }) { count sum { visits } }
   } } }`;
   const response = await fetchImpl('https://api.cloudflare.com/client/v4/graphql', {
