@@ -1,12 +1,6 @@
 name: All websites — Telegram visits every 8 hours
 
 on:
-  # One-time verification on the merge of the Sham X analytics fix. Remove this
-  # push trigger once the live report is verified; scheduled delivery is unchanged.
-  push:
-    branches: [main]
-    paths:
-      - 'backend/telegram-site-alerts.mjs'
   pull_request:
     paths:
       - 'backend/telegram-site-alerts.mjs'
