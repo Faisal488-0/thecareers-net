@@ -3,7 +3,8 @@ import { pathToFileURL } from 'node:url';
 
 // Aggregated, privacy-minimized site analytics: no user/customer information.
 const SUPABASE_DEFAULT = 'https://cqqozlmsvysmxdkkxjbj.supabase.co';
-const SHAMX_CF_ZONE = '2d86e9ae06e60012e2a0e2178fdd5a36';
+const SHAMX_CF_ACCOUNT = 'dc4d0b77edbbc1a90904c17ad3cf9ca3';
+const SHAMX_CF_RUM_SITE = '671f656991a946ac9f1ec60487b074cf';
 const HOUR = 60 * 60 * 1000;
 const PERIOD = 8 * HOUR;
 const UTC_OFFSET = 5 * HOUR; // Kuwait 00/08/16 = UTC 21/05/13.
@@ -46,14 +47,17 @@ export async function countSupabase(site, { fetchImpl, env, start, end }) {
   return Number(total);
 }
 
-// Cloudflare measures edge visits; these are not identical to anonymous browser-tab sessions.
+// RUM counts successful browser page loads. It is less polluted by bot/API traffic
+// than zone-level HTTP visit counters, but it still is not an exact distinct-person count.
+// Query only the Sham X site tag; never mix visits from other Cloudflare sites.
 export async function countCloudflare({ fetchImpl, env, start, end }) {
   const token = env.CF_ANALYTICS_API_TOKEN;
   if (!token) return null;
-  const query = `{ viewer { zones(filter: { zoneTag: "${SHAMX_CF_ZONE}" }) {
-    httpRequestsAdaptiveGroups(limit: 1, filter: {
-      datetime_geq: "${start.toISOString()}", datetime_lt: "${end.toISOString()}"
-    }) { sum { visits } }
+  const query = `{ viewer { accounts(filter: { accountTag: "${SHAMX_CF_ACCOUNT}" }) {
+    rumPageloadEventsAdaptiveGroups(limit: 1, filter: {
+      datetime_geq: "${start.toISOString()}", datetime_lt: "${end.toISOString()}",
+      siteTag: "${SHAMX_CF_RUM_SITE}", requestHost: "shamx.net"
+    }) { count sum { visits } }
   } } }`;
   const response = await fetchImpl('https://api.cloudflare.com/client/v4/graphql', {
     method: 'POST',
@@ -61,17 +65,21 @@ export async function countCloudflare({ fetchImpl, env, start, end }) {
     body: JSON.stringify({ query }),
     signal: AbortSignal.timeout(15000)
   });
-  if (!response.ok) throw new Error(`Cloudflare analytics HTTP ${response.status}`);
+  if (!response.ok) throw new Error(`Cloudflare web analytics HTTP ${response.status}`);
   const data = await response.json();
   if (data.errors?.length) throw new Error('Cloudflare GraphQL returned an analytics error');
-  const zones = data?.data?.viewer?.zones;
-  if (!Array.isArray(zones) || zones.length !== 1) throw new Error('Cloudflare analytics zone unavailable');
-  const rows = zones[0]?.httpRequestsAdaptiveGroups;
-  if (!Array.isArray(rows)) throw new Error('Cloudflare analytics aggregate unavailable');
-  if (rows.length === 0) return 0;
+  const accounts = data?.data?.viewer?.accounts;
+  if (!Array.isArray(accounts) || accounts.length !== 1) throw new Error('Cloudflare analytics account unavailable');
+  const rows = accounts[0]?.rumPageloadEventsAdaptiveGroups;
+  if (!Array.isArray(rows)) throw new Error('Cloudflare RUM aggregates unavailable');
+  if (rows.length === 0) return { visits: 0, pageViews: 0 };
+  if (rows.length !== 1) throw new Error('Unexpected Cloudflare RUM aggregate shape');
   const visits = rows[0]?.sum?.visits;
-  if (!Number.isFinite(visits) || visits < 0) throw new Error('Cloudflare analytics count invalid');
-  return Math.round(visits);
+  const pageViews = rows[0]?.count;
+  if (!Number.isSafeInteger(visits) || visits < 0 || !Number.isSafeInteger(pageViews) || pageViews < 0) {
+    throw new Error('Cloudflare RUM aggregate invalid');
+  }
+  return { visits, pageViews };
 }
 
 export async function runReport({ env = process.env, fetchImpl = fetch, now = Date.now(), log = console } = {}) {
@@ -84,25 +92,29 @@ export async function runReport({ env = process.env, fetchImpl = fetch, now = Da
       return { ...site, visits: null, status: 'not_configured' };
     }
     try {
-      const visits = site.provider === 'cloudflare'
+      const metrics = site.provider === 'cloudflare'
         ? await countCloudflare({ fetchImpl, env, start, end })
         : await countSupabase(site, { fetchImpl, env, start, end });
-      return { ...site, visits, status: 'ok' };
+      const visits = site.provider === 'cloudflare' ? metrics.visits : metrics;
+      const pageViews = site.provider === 'cloudflare' ? metrics.pageViews : null;
+      return { ...site, visits, pageViews, status: 'ok' };
     } catch (error) {
       log.error(`Analytics source error (${site.domain}): ${error?.message || String(error)}`);
       return { ...site, visits: null, status: 'error' };
     }
   }));
-  const lines = results.map(({ domain, provider, visits, status }) => {
-    if (status === 'not_configured') return `${domain}: غير مربوط (Cloudflare)`;
+  const lines = results.map(({ domain, provider, visits, pageViews, status }) => {
+    if (status === 'not_configured') return `${domain}: غير مربوط (Cloudflare Analytics)`;
     if (status === 'error') return `${domain}: تعذّر قراءة الإحصائيات`;
-    return `${domain}: ${visits.toLocaleString('en-US')}${provider === 'cloudflare' ? ' (زيارات Cloudflare)' : ''}`;
+    return provider === 'cloudflare'
+      ? `${domain}: ${visits.toLocaleString('en-US')} زيارة متصفح، ${pageViews.toLocaleString('en-US')} مشاهدة صفحة (Cloudflare)`
+      : `${domain}: ${visits.toLocaleString('en-US')}`;
   });
   const message = [
     '📊 زيارات آخر ٨ ساعات',
     `الفترة (الكويت): ${localKuwait(start)} — ${localKuwait(end)}`,
     ...lines,
-    'الأرقام الأخرى = جلسات مسجلة من الموقع؛ Cloudflare يستخدم تعريفاً مختلفاً للزيارة.'
+    'الأرقام الأخرى = جلسات مسجلة من الموقع؛ Cloudflare Web Analytics يحسب نشاط المتصفح، وليس أشخاصاً فريدين.'
   ].join('\n');
   const delivered = await fetchImpl(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
     method: 'POST',

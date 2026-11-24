@@ -1,6 +1,12 @@
 name: All websites — Telegram visits every 8 hours
 
 on:
+  # One-time verification on the merge of the Sham X analytics fix. Remove this
+  # push trigger once the live report is verified; scheduled delivery is unchanged.
+  push:
+    branches: [main]
+    paths:
+      - 'backend/telegram-site-alerts.mjs'
   pull_request:
     paths:
       - 'backend/telegram-site-alerts.mjs'
@@ -35,10 +41,11 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          CF_ANALYTICS_API_TOKEN: ${{ secrets.CF_ANALYTICS_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
         shell: bash
         run: |
           missing=0
-          for secret in SUPABASE_SERVICE_ROLE_KEY TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID; do
+          for secret in SUPABASE_SERVICE_ROLE_KEY TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID CF_ANALYTICS_API_TOKEN; do
             if [ -z "${!secret}" ]; then
               echo "::error title=Missing secret::${secret} is not configured in repository Actions secrets."
               missing=1
