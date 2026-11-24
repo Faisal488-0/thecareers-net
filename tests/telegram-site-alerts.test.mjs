@@ -54,7 +54,7 @@ test('Cloudflare mode reads actual Cloudflare visit count when token exists', as
   const graphql = JSON.parse(h.calls.find(c => c.url.includes('api.cloudflare.com')).options.body).query;
   assert.match(graphql, /rumPageloadEventsAdaptiveGroups/);
   assert.match(graphql, /siteTag/);
-  assert.match(graphql, /requestHost: "shamx\\.net"/);
+  assert.match(graphql, /requestHost: "shamx\.net"/);
   assert.doesNotMatch(graphql, /httpRequestsAdaptiveGroups/);
   assert.equal(result.results.find(s => s.domain === 'shamx.net').visits, 17);
   assert.equal(result.results.find(s => s.domain === 'shamx.net').pageViews, 23);
