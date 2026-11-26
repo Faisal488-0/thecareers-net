@@ -7,7 +7,7 @@ const env = {
   TELEGRAM_BOT_TOKEN: 'fake-token',
   TELEGRAM_CHAT_ID: '123'
 };
-function harness({ token, brokenSource, telegramOk = true } = {}) {
+function harness({ token, brokenSource, telegramOk = true, breakdownError = false, mismatch = false } = {}) {
   const calls = [];
   const logs = [];
   const fetchImpl = async (url, options) => {
@@ -17,6 +17,17 @@ function harness({ token, brokenSource, telegramOk = true } = {}) {
     }
     if (brokenSource && url.includes(brokenSource)) return { ok: false, status: 403 };
     if (url.includes('api.cloudflare.com')) {
+      const query = JSON.parse(options.body).query;
+      if (query.includes('dimensions { bot')) {
+        if (breakdownError) return { ok: true, json: async () => ({ errors: [{ message: 'field unavailable' }] }) };
+        const rows = [
+          { count: 15, sum: { visits: 10 }, dimensions: { bot: 0, countryName: 'SY', refererHost: 'www.google.com', userAgentBrowser: 'Chrome' } },
+          { count: 4, sum: { visits: 3 }, dimensions: { bot: 1, countryName: 'US', refererHost: '', userAgentBrowser: 'Chrome' } },
+          { count: 2, sum: { visits: 2 }, dimensions: { bot: 0, countryName: 'KW', refererHost: '', userAgentBrowser: 'HeadlessChrome' } },
+          { count: 2, sum: { visits: mismatch ? 1 : 2 }, dimensions: { bot: null, countryName: 'KW', refererHost: '', userAgentBrowser: 'Chrome' } }
+        ];
+        return { ok: true, json: async () => ({ data: { viewer: { accounts: [{ rumPageloadEventsAdaptiveGroups: rows }] } } }) };
+      }
       return {
         ok: true, status: 200,
         json: async () => ({ data: { viewer: { accounts: [{ rumPageloadEventsAdaptiveGroups: [{ count: 23, sum: { visits: 17 } }] }] } } })
@@ -50,7 +61,7 @@ test('one delivery, five Supabase queries, and transparent Cloudflare missing-to
 test('Cloudflare mode reads actual Cloudflare visit count when token exists', async () => {
   const h = harness();
   const result = await runReport({ env: { ...env, CF_ANALYTICS_API_TOKEN: 'test-cf-token' }, fetchImpl: h.fetchImpl, log: h.log });
-  assert.equal(h.calls.filter(c => c.url.includes('api.cloudflare.com')).length, 1);
+  assert.equal(h.calls.filter(c => c.url.includes('api.cloudflare.com')).length, 2);
   const graphql = JSON.parse(h.calls.find(c => c.url.includes('api.cloudflare.com')).options.body).query;
   assert.match(graphql, /rumPageloadEventsAdaptiveGroups/);
   assert.match(graphql, /siteTag/);
@@ -73,3 +84,26 @@ test('delivery failures propagate instead of claiming a successful alert', async
   const h = harness({ telegramOk: false });
   await assert.rejects(runReport({ env, fetchImpl: h.fetchImpl, log: h.log }), /Telegram delivery failed/);
 });
+
+test('automation split and source/country totals exclude identified automation and unknowns', async () => {
+  const h = harness();
+  const result = await runReport({ env: { ...env, CF_ANALYTICS_API_TOKEN: 'test-cf-token' }, fetchImpl: h.fetchImpl, log: h.log });
+  const sham = result.results.find(s => s.domain === 'shamx.net');
+  assert.deepEqual(sham.breakdown, { likely: 10, automated: 5, unknown: 2, countries: [['SY', 10]], sources: [['Google', 10]] });
+  assert.match(result.message, /غير موسومة كروبوت: 10/);
+  assert.match(result.message, /آلية مرصودة: 5/);
+  assert.match(result.message, /SY: 10/);
+  assert.match(result.message, /Google: 10/);
+  assert.match(result.message, /لا تعني بشراً مؤكدين/);
+});
+for (const options of [{ breakdownError: true }, { mismatch: true }]) {
+  test('breakdown failure or mismatch keeps real totals: ' + JSON.stringify(options), async () => {
+    const h = harness(options);
+    const result = await runReport({ env: { ...env, CF_ANALYTICS_API_TOKEN: 'test-cf-token' }, fetchImpl: h.fetchImpl, log: h.log });
+    const sham = result.results.find(s => s.domain === 'shamx.net');
+    assert.equal(sham.visits, 17);
+    assert.equal(sham.breakdown, null);
+    assert.match(result.message, /تصنيف الزيارات: غير متاح/);
+    assert.equal(h.calls.filter(c => c.url.includes('api.telegram.org')).length, 1);
+  });
+}
