@@ -82,6 +82,58 @@ export async function countCloudflare({ fetchImpl, env, start, end }) {
   return { visits, pageViews };
 }
 
+// Separate optional breakdown: a schema/permission failure must not destroy totals.
+export async function cloudflareBreakdown({ fetchImpl, env, start, end, totals }) {
+  const query = `{ viewer { accounts(filter: { accountTag: "${SHAMX_CF_ACCOUNT}" }) {
+    rumPageloadEventsAdaptiveGroups(limit: 1000, filter: {
+      datetime_geq: "${start.toISOString()}", datetime_lt: "${end.toISOString()}",
+      siteTag: "${SHAMX_CF_RUM_SITE}", requestHost: "shamx.net"
+    }) { count sum { visits } dimensions { bot countryName refererHost userAgentBrowser } }
+  } } }`;
+  const response = await fetchImpl('https://api.cloudflare.com/client/v4/graphql', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.CF_ANALYTICS_API_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }), signal: AbortSignal.timeout(15000)
+  });
+  if (!response.ok) throw new Error('Cloudflare breakdown HTTP ' + response.status);
+  const data = await response.json();
+  const accounts = data?.data?.viewer?.accounts;
+  const rows = accounts?.[0]?.rumPageloadEventsAdaptiveGroups;
+  if (data.errors?.length || accounts?.length !== 1 || !Array.isArray(rows) || rows.length >= 1000) {
+    throw new Error('Cloudflare breakdown unavailable or incomplete');
+  }
+  let visits = 0, pageViews = 0, likely = 0, automated = 0, unknown = 0;
+  const countries = new Map(), sources = new Map();
+  const add = (map, label, n) => map.set(label, (map.get(label) || 0) + n);
+  for (const row of rows) {
+    const n = row?.sum?.visits, p = row?.count, d = row?.dimensions;
+    if (!Number.isSafeInteger(n) || n < 0 || !Number.isSafeInteger(p) || p < 0 || !d) {
+      throw new Error('Invalid Cloudflare breakdown');
+    }
+    visits += n; pageViews += p;
+    const browser = String(d.userAgentBrowser || '');
+    const automation = /headless|playwright|puppeteer|selenium|phantom|bot|crawler|spider|lighthouse/i.test(browser);
+    if (d.bot === 1 || d.bot === true || d.bot === '1' || automation) { automated += n; continue; }
+    if (!(d.bot === 0 || d.bot === false || d.bot === '0')) { unknown += n; continue; }
+    likely += n;
+    const country = String(d.countryName || '').trim();
+    add(countries, /^[A-Za-z]{2,3}$/.test(country) ? country.toUpperCase() : 'غير محدد', n);
+    const host = String(d.refererHost || '').toLowerCase().trim().replace(/\.$/, '');
+    let source = 'أخرى';
+    if (!host) source = 'بدون إحالة (مباشر أو غير معروف)';
+    else if (host === 'shamx.net' || host.endsWith('.shamx.net')) source = 'داخلي';
+    else if (/^(?:[a-z0-9-]+\.)*google\.(?:com|[a-z]{2}|co\.[a-z]{2}|com\.[a-z]{2})$/.test(host)) source = 'Google';
+    else if (/^(?:[a-z0-9-]+\.)*(?:facebook\.com|fb\.com|fb\.me)$/.test(host)) source = 'Facebook';
+    else if (/^(?:[a-z0-9-]+\.)*instagram\.com$/.test(host)) source = 'Instagram';
+    else if (host === 't.me' || host === 'telegram.org') source = 'Telegram';
+    add(sources, source, n);
+  }
+  // Adaptive samples may differ across queries. Never publish an inconsistent split.
+  if (visits !== totals.visits || pageViews !== totals.pageViews) throw new Error('Cloudflare breakdown does not reconcile with totals');
+  const top = map => [...map].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 5);
+  return { likely, automated, unknown, countries: top(countries), sources: top(sources) };
+}
+
 export async function runReport({ env = process.env, fetchImpl = fetch, now = Date.now(), log = console } = {}) {
   for (const name of ['SUPABASE_SERVICE_ROLE_KEY', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID']) {
     if (!env[name]) throw new Error(`Missing required secret: ${name}`);
@@ -97,24 +149,39 @@ export async function runReport({ env = process.env, fetchImpl = fetch, now = Da
         : await countSupabase(site, { fetchImpl, env, start, end });
       const visits = site.provider === 'cloudflare' ? metrics.visits : metrics;
       const pageViews = site.provider === 'cloudflare' ? metrics.pageViews : null;
-      return { ...site, visits, pageViews, status: 'ok' };
+      let breakdown = null;
+      if (site.provider === 'cloudflare') {
+        try {
+          breakdown = await cloudflareBreakdown({ fetchImpl, env, start, end, totals: metrics });
+        } catch {
+          log.error('Cloudflare traffic breakdown unavailable (totals retained)');
+        }
+      }
+      return { ...site, visits, pageViews, breakdown, status: 'ok' };
     } catch (error) {
       log.error(`Analytics source error (${site.domain}): ${error?.message || String(error)}`);
       return { ...site, visits: null, status: 'error' };
     }
   }));
-  const lines = results.map(({ domain, provider, visits, pageViews, status }) => {
+  const lines = results.map(({ domain, provider, visits, pageViews, breakdown, status }) => {
     if (status === 'not_configured') return `${domain}: غير مربوط (Cloudflare Analytics)`;
     if (status === 'error') return `${domain}: تعذّر قراءة الإحصائيات`;
-    return provider === 'cloudflare'
-      ? `${domain}: ${visits.toLocaleString('en-US')} زيارة متصفح، ${pageViews.toLocaleString('en-US')} مشاهدة صفحة (Cloudflare)`
-      : `${domain}: ${visits.toLocaleString('en-US')}`;
+    if (provider !== 'cloudflare') return `${domain}: ${visits.toLocaleString('en-US')}`;
+    const total = `${domain}: ${visits.toLocaleString('en-US')} زيارة متصفح، ${pageViews.toLocaleString('en-US')} مشاهدة صفحة (Cloudflare)`;
+    if (!breakdown) return total + '\n  تصنيف الزيارات: غير متاح';
+    const format = entries => entries.map(([label, n]) => `${label}: ${n}`).join('، ') || 'لا بيانات';
+    return [
+      total,
+      `  غير موسومة كروبوت: ${breakdown.likely} | آلية مرصودة: ${breakdown.automated} | غير مصنفة: ${breakdown.unknown}`,
+      `  أبرز الدول (غير موسومة): ${format(breakdown.countries)}`,
+      `  أبرز مصادر الإحالة (غير موسومة): ${format(breakdown.sources)}`
+    ].join('\n');
   });
   const message = [
     '📊 زيارات آخر ٨ ساعات',
     `الفترة (الكويت): ${localKuwait(start)} — ${localKuwait(end)}`,
     ...lines,
-    'الأرقام الأخرى = جلسات مسجلة من الموقع؛ Cloudflare Web Analytics يحسب نشاط المتصفح، وليس أشخاصاً فريدين.'
+    'المواقع الأخرى: جلسات أو أحداث زيارة مسجلة، وليست أشخاصاً فريدين. غير موسومة كروبوت لا تعني بشراً مؤكدين؛ زيارات المالك والاختبارات غير المكتشفة قد تكون ضمنها. التسجيلات والإعلانات وزيارات المالك غير متاحة من هذا المصدر.'
   ].join('\n');
   const delivered = await fetchImpl(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
     method: 'POST',
